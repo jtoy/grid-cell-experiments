@@ -11,9 +11,9 @@ We will port it to Python 3 and pytorch.
 
 
 Potential modifications:
-Can we 
-The path integration
-
+* Can we implement our own trajectories with an artifical agent
+* can we change out the model to use transformers
+* can we use other forms of attention
 
 Next steps:
 1 private github repo of copy deepmind
