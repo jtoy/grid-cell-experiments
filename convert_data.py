@@ -8,7 +8,7 @@ import dataset_reader
 import torch
 
 data_reader = dataset_reader.DataReader(
-        'square_room', '../data/', num_threads=8)
+        'square_room','data/', num_threads=8)
 train_traj = data_reader.read(batch_size=10000)
 in_pos, in_hd, ego_vel, target_pos, target_hd = train_traj
 with tf.train.SingularMonitoredSession() as sess:
