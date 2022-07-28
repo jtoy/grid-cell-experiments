@@ -11,7 +11,7 @@ data_reader = dataset_reader.DataReader(
         'square_room','data/', num_threads=8)
 train_traj = data_reader.read(batch_size=10000)
 in_pos, in_hd, ego_vel, target_pos, target_hd = train_traj
-with tf.train.SingularMonitoredSession() as sess:
+with tf.compat.v1.train.SingularMonitoredSession() as sess:
 
     for i in range(99):
         res = sess.run({

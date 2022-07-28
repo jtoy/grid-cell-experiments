@@ -22,7 +22,7 @@ from __future__ import print_function
 import collections
 import os
 import tensorflow as tf
-
+tf.compat.v1.disable_eager_execution()
 DatasetInfo = collections.namedtuple(
     'DatasetInfo', ['basepath', 'size', 'sequence_length', 'coord_range'])
 
@@ -96,7 +96,7 @@ class DataReader(object):
     with tf.device('/cpu'):
       file_names = _get_dataset_files(self._dataset_info, root)
       filename_queue = tf.compat.v1.train.string_input_producer(file_names, seed=seed)
-      reader = tf.TFRecordReader()
+      reader = tf.compat.v1.TFRecordReader()
 
       read_ops = [
           self._make_read_op(reader, filename_queue) for _ in range(num_threads)
@@ -104,7 +104,7 @@ class DataReader(object):
       dtypes = tf.nest.map_structure(lambda x: x.dtype, read_ops[0])
       shapes = tf.nest.map_structure(lambda x: x.shape[1:], read_ops[0])
 
-      self._queue = tf.RandomShuffleQueue(
+      self._queue = tf.queue.RandomShuffleQueue(
           capacity=capacity,
           min_after_dequeue=min_after_dequeue,
           dtypes=dtypes,
@@ -112,7 +112,7 @@ class DataReader(object):
           seed=seed)
 
       enqueue_ops = [self._queue.enqueue_many(op) for op in read_ops]
-      tf.train.add_queue_runner(tf.train.QueueRunner(self._queue, enqueue_ops))
+      tf.compat.v1.train.add_queue_runner(tf.compat.v1.train.QueueRunner(self._queue, enqueue_ops))
 
   def read(self, batch_size):
     """Reads batch_size."""
@@ -128,23 +128,23 @@ class DataReader(object):
     _, raw_data = reader.read_up_to(filename_queue, num_records=64)
     feature_map = {
         'init_pos':
-            tf.FixedLenFeature(shape=[2], dtype=tf.float32),
+            tf.compat.v1.FixedLenFeature(shape=[2], dtype=tf.float32),
         'init_hd':
-            tf.FixedLenFeature(shape=[1], dtype=tf.float32),
+            tf.compat.v1.FixedLenFeature(shape=[1], dtype=tf.float32),
         'ego_vel':
-            tf.FixedLenFeature(
+            tf.compat.v1.FixedLenFeature(
                 shape=[self._dataset_info.sequence_length, 3],
                 dtype=tf.float32),
         'target_pos':
-            tf.FixedLenFeature(
+            tf.compat.v1.FixedLenFeature(
                 shape=[self._dataset_info.sequence_length, 2],
                 dtype=tf.float32),
         'target_hd':
-            tf.FixedLenFeature(
+            tf.compat.v1.FixedLenFeature(
                 shape=[self._dataset_info.sequence_length, 1],
                 dtype=tf.float32),
     }
-    example = tf.parse_example(raw_data, feature_map)
+    example = tf.io.parse_example(raw_data, feature_map)
     batch = [
         example['init_pos'], example['init_hd'],
         example['ego_vel'][:, :self._steps, :],
