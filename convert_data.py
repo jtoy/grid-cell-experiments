@@ -22,4 +22,4 @@ with tf.compat.v1.train.SingularMonitoredSession() as sess:
         "target_hd":target_hd,
         })
 
-        torch.save(res, '../data/torch/{}-99.pt'.format(i))
+        torch.save(res, 'data/torch/{}-99.pt'.format(i))
