@@ -1,5 +1,5 @@
 import numpy as np
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 
 @dataclass
@@ -10,6 +10,9 @@ class Trajectory:
 
     target_hd: np.array
     target_pos: np.array
+
+    def as_dict(self) -> dict:
+        return asdict(self)
 
     def __rich_repr__(self):
         yield 'init_pos', self.init_pos
@@ -59,13 +62,13 @@ class TrajectoryBatch:
     target_hd: np.array
     target_pos: np.array
 
+    @property
+    def size(self) -> int:
+        return self.init_pos.shape[0]
+
     def __rich_repr__(self):
         yield 'init_pos', self.init_pos
-        yield 'batch_size', self.batch_size
-
-    @property
-    def batch_size(self):
-        return self.init_pos.shape[0]
+        yield 'batch_size', self.size
 
     def __getitem__(self, idx: int) -> Trajectory:
         trajectory = Trajectory(
