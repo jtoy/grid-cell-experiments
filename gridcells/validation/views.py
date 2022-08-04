@@ -10,19 +10,20 @@ def compare_model_output(
     model_head: np.array,
 ):
     fig, axes = plt.subplots(2, 1, figsize=(6, 8), gridspec_kw={'height_ratios': [3, 1]})
-
-    x0 = init_pos[0]
-    y0 = init_pos[1]
     ax = axes[0]
-    ax.plot(x0, y0, 'o')
 
     model_x = model_place[:, 0]
     model_y = model_place[:, 1]
-    ax.plot(model_x, model_y, '--o', label='Prediction')
+    ax.plot(model_x, model_y, '--o', label='Prediction', alpha=0.666)
 
     real_x = target_place[:, 0]
     real_y = target_place[:, 1]
-    ax.plot(real_x, real_y, '--o', label='Reality')
+    ax.plot(real_x, real_y, '--o', label='Reality', alpha=0.666)
+
+    x0 = init_pos[0]
+    y0 = init_pos[1]
+    ax.plot(x0, y0, 'o', label='Starting point')
+
     ax.set_xlim(-1.1, 1.1)
     ax.set_ylim(-1.1, 1.1)
     ax.legend()
