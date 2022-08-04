@@ -1,5 +1,26 @@
 # grid-cell-experiments
 
+### Running:
+
+Install dependencies:
+
+```sh
+pip install -r requirements.txt
+```
+
+Run training loop:
+
+```sh
+python -m gridcells.main
+```
+
+Use tensorboard to monitor progrss:
+
+```sh
+tensorboard --logdir=tmp/tensorboard --host=0.0.0.0
+```
+
+---
 
 Goal: Get a deeper understanding of using deepmind's grid cell paper. Can we reproduce the experiments and graphs? If we get a deep understanding of the system, we may be able to produce our own experiments.
 

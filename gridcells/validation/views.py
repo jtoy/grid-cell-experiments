@@ -8,7 +8,7 @@ def compare_model_output(
     model_place: np.array,
     target_head: np.array,
     model_head: np.array,
-):
+) -> plt.Figure:
     fig, axes = plt.subplots(2, 1, figsize=(6, 8), gridspec_kw={'height_ratios': [3, 1]})
     ax = axes[0]
 
@@ -36,3 +36,5 @@ def compare_model_output(
     ax.legend()
     ax.set_title('Head direction')
     fig.tight_layout()
+
+    return fig
