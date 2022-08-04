@@ -11,8 +11,8 @@ from gridcells.training import epochs as training_epochs
 def main():
     paths = glob('data/torch/*pt')
     model = gridcell_models.WorstModel()
-    t_dataset = SelfLocationDataset(paths[:30])
-    v_dataset = SelfLocationDataset(paths[30:40])
+    t_dataset = SelfLocationDataset(paths[:70])
+    v_dataset = SelfLocationDataset(paths[70:])
 
     train_loader = DataLoader(t_dataset, batch_size=1024, shuffle=True, num_workers=8)
     validation_loader = DataLoader(v_dataset, batch_size=1024, shuffle=False, num_workers=8)
@@ -20,7 +20,7 @@ def main():
     loss_fn = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.98), eps=1e-9)
 
-    n_epochs = 32
+    n_epochs = 1024
 
     progress_bar = tqdm(range(n_epochs), total=n_epochs)
     for epoch in progress_bar:
@@ -38,6 +38,8 @@ def main():
         )
         epoch_summary = f'Training loss: {training_loss:.2f}, validation loss: {validation_loss:.2f}'
         progress_bar.set_description(epoch_summary)
+
+    torch.save(model.state_dict(), 'tmp/model.pt')
 
 
 if __name__ == '__main__':

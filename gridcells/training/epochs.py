@@ -46,6 +46,7 @@ def train_epoch(
         loss = place_loss + head_loss
 
         loss_metric.total_loss += loss.item()
+        # MSE is already per-sample
         loss_metric.n_samples += 1
 
         loss.backward()
