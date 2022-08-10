@@ -7,20 +7,30 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from gridcells.models import main as gridcell_models
-from gridcells.data.dataset import SelfLocationDataset
+from gridcells.data.dataset import OurDataLoader, SelfLocationDataset
 from gridcells.training import epochs as training_epochs
 from gridcells.validation import views as validation_views
+from torch.utils.data.dataloader import default_collate
 
+def preprocess(x, y,device):
+    return x.view(-1, 1, 28, 28), y
+    return x.to(device),y.to(device)
 
 def main():
     n_epochs = 51
+    if torch.backends.mps.is_available():
+        device = torch.device("mps")
+        device = torch.device("cpu")
+    else:
+        device = torch.device("cpu")
 
     date_time = dt.datetime.now().strftime("%m%d_%H%M")
     run_name = "GC_" + date_time
     writer = SummaryWriter(f"tmp/tensorboard/{run_name}")
 
     paths = glob('data/torch/*pt')
-    model = gridcell_models.WorstModel()
+    model = gridcell_models.WorstModel2()
+    model.to(device)
     t_dataset = SelfLocationDataset(paths[:70])
     v_dataset = SelfLocationDataset(paths[70:])
 
@@ -37,6 +47,7 @@ def main():
     for epoch in progress_bar:
         training_loss = training_epochs.train_epoch(
             model=model,
+            device=device,
             data_loader=train_loader,
             optimizer=optimizer,
             partial_loss_fn=loss_fn,
@@ -44,6 +55,7 @@ def main():
 
         validation_loss = training_epochs.validation_epoch(
             model=model,
+            device=device,
             data_loader=validation_loader,
             partial_loss_fn=loss_fn,
         )
@@ -57,6 +69,7 @@ def main():
         if epoch % 10 == 0:
             write_validation_plots(
                 model=model,
+                device=device,
                 batch=validation_batch,
                 writer=writer,
                 epoch=epoch,
@@ -67,24 +80,25 @@ def main():
 
 def write_validation_plots(
     model: nn.Module,
+    device: torch.device,
     batch: dict,
     writer: SummaryWriter,
     epoch: int,
     n_samples: int = 5
 ):
-    init_pos = batch['init_pos']
-    init_hd = batch['init_hd']
-    ego_vel = batch['ego_vel']
-    target_place = batch['target_pos']
-    target_head = batch['target_hd']
+    init_pos = batch['init_pos'].to(device)
+    init_hd = batch['init_hd'].to(device)
+    ego_vel = batch['ego_vel'].to(device)
+    target_place = batch['target_pos'].to(device)
+    target_head = batch['target_hd'].to(device)
     place_cells, head_cells = model(init_pos, init_hd, ego_vel)
     for idx in range(n_samples):
         fig = validation_views.compare_model_output(
-            init_pos=init_pos[idx].detach(),
-            target_place=target_place[idx].detach(),
-            model_place=place_cells[idx].detach(),
-            target_head=target_head[idx].detach(),
-            model_head=head_cells[idx].detach(),
+            init_pos=init_pos[idx].cpu().detach(),
+            target_place=target_place[idx].cpu().detach(),
+            model_place=place_cells[idx].cpu().detach(),
+            target_head=target_head[idx].cpu().detach(),
+            model_head=head_cells[idx].cpu().detach(),
         )
         writer.add_figure(f"validation/trajectories/{idx:02}", fig, epoch)
 

@@ -19,6 +19,7 @@ class LossMetric:
 
 def train_epoch(
     model: nn.Module,
+    device: torch.device,
     data_loader: DataLoader,
     optimizer: torch.optim,
     partial_loss_fn: Callable,
@@ -31,13 +32,12 @@ def train_epoch(
         optimizer.zero_grad()
 
         # Model inputs
-        init_pos = batch['init_pos']
-        init_hd = batch['init_hd']
-        ego_vel = batch['ego_vel']
-
+        init_pos = batch['init_pos'].to(device)
+        init_hd = batch['init_hd'].to(device)
+        ego_vel = batch['ego_vel'].to(device)
         # Model outputs
-        target_place = batch['target_pos']
-        target_head = batch['target_hd']
+        target_place = batch['target_pos'].to(device)
+        target_head = batch['target_hd'].to(device)
 
         place_cells, head_cells = model(init_pos, init_hd, ego_vel)
 
@@ -58,6 +58,7 @@ def train_epoch(
 
 def validation_epoch(
     model: nn.Module,
+    device: torch.device,
     data_loader: DataLoader,
     partial_loss_fn: Callable,
 ) -> nn.Module:
@@ -67,13 +68,13 @@ def validation_epoch(
 
     for batch in data_loader:
         # Model inputs
-        init_pos = batch['init_pos']
-        init_hd = batch['init_hd']
-        ego_vel = batch['ego_vel']
+        init_pos = batch['init_pos'].to(device)
+        init_hd = batch['init_hd'].to(device)
+        ego_vel = batch['ego_vel'].to(device)
 
         # Model outputs
-        target_place = batch['target_pos']
-        target_head = batch['target_hd']
+        target_place = batch['target_pos'].to(device)
+        target_head = batch['target_hd'].to(device)
 
         place_cells, head_cells = model(init_pos, init_hd, ego_vel)
 
