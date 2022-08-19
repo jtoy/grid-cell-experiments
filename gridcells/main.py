@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from tqdm import tqdm
 from glob import glob
 import datetime as dt
@@ -6,6 +7,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
+from gridcells.data import encoder as data_encoder
 from gridcells.models import main as gridcell_models
 from gridcells.data.dataset import SelfLocationDataset
 from gridcells.training import epochs as training_epochs
@@ -87,6 +89,15 @@ def write_validation_plots(
             model_head=head_cells[idx].detach(),
         )
         writer.add_figure(f"validation/trajectories/{idx:02}", fig, epoch)
+
+
+def review_encoding():
+    paths = glob('data/torch/*pt')
+    dataset = SelfLocationDataset(paths[:1])
+    idx = np.random.randint(len(dataset))
+    target_pos = dataset[idx]['target_pos']
+    position_encoder = data_encoder.DeepMindPlaceEncoder()
+    validation_views.review_position_encoder(target_pos, position_encoder)
 
 
 if __name__ == '__main__':
