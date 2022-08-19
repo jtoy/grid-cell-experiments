@@ -38,3 +38,19 @@ def compare_model_output(
     fig.tight_layout()
 
     return fig
+
+
+def review_position_encoder(positions: np.array, encoder):
+    encoded = encoder.encode(positions)
+    decoded = encoder.decode(encoded)
+
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    ax.plot(positions[:, 0], positions[:, 1], label='trajectory')
+    # ax.scatter(decoded[:, 0], decoded[:, 1], label='decoded')
+    # ax.plot(positions[:, 0], positions[:, 1])
+    ax.plot(decoded[:, 0], decoded[:, 1], '-o', label='decoded', color='tomato')
+
+    ax.set_xlim(-1.1, 1.1)
+    ax.set_ylim(-1.1, 1.1)
+
+    ax.legend()
