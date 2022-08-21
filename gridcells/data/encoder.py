@@ -23,8 +23,8 @@ class DeepMindishEncoder:
         }
 
         record = {
-            'initial_conditions': initial_conditions,
-            'targets': targets,
+            'encoded_inits': initial_conditions,
+            'encoded_targets': targets,
         }
         return record
 
@@ -40,8 +40,8 @@ class DeepMindHeadEncoder:
         self.kappa = np.ones_like(self.means) * concentration
 
     def encode(self, head_direction: np.array) -> np.array:
-        logp = self.kappa * np.cos(head_direction - self.means[np.newaxis, np.newaxis, :])
-        log_posteriors = logp - logsumexp(logp, axis=2, keepdims=True)
+        logp = self.kappa * np.cos(head_direction - self.means[np.newaxis, :])
+        log_posteriors = logp - logsumexp(logp, axis=1, keepdims=True)
         return log_posteriors
 
 
@@ -59,17 +59,17 @@ class DeepMindPlaceEncoder:
         self.variances = np.ones_like(self.means) * stdev**2
 
     def encode(self, trajs: np.array):
-        diff = trajs[:, np.newaxis, np.newaxis, :] - self.means[np.newaxis, np.newaxis, ...]
+        diff = trajs[:, np.newaxis, :] - self.means[np.newaxis, ...]
         normalized_diff = (diff**2) / self.variances
 
         logp = -0.5 * np.sum(normalized_diff, axis=-1)
 
-        log_posteriors = logp - logsumexp(logp, axis=2, keepdims=True)
+        log_posteriors = logp - logsumexp(logp, axis=1, keepdims=True)
         # probs = softmax(log_posteriors)
 
         return log_posteriors
 
     def decode(self, x: np.array) -> np.array:
-        idxs = x[:, 0, :].argmax(-1)
+        idxs = x[:, :].argmax(-1)
         recreated = np.array([self.means[idx] for idx in idxs])
         return recreated

@@ -12,6 +12,7 @@ from gridcells.models import main as gridcell_models
 from gridcells.data.dataset import SelfLocationDataset
 from gridcells.training import epochs as training_epochs
 from gridcells.validation import views as validation_views
+from gridcells.data.dataset import EncodedLocationDataset
 
 
 def main():
@@ -91,13 +92,53 @@ def write_validation_plots(
         writer.add_figure(f"validation/trajectories/{idx:02}", fig, epoch)
 
 
-def review_encoding():
+def review_decoding():
     paths = glob('data/torch/*pt')
     dataset = SelfLocationDataset(paths[:1])
     idx = np.random.randint(len(dataset))
     target_pos = dataset[idx]['target_pos']
     position_encoder = data_encoder.DeepMindPlaceEncoder()
     validation_views.review_position_encoder(target_pos, position_encoder)
+
+
+def lstm_pipeline_prototype():
+    paths = glob('data/torch/*pt')
+    encoder = data_encoder.DeepMindishEncoder()
+    dataset = EncodedLocationDataset(paths, encoder)
+
+    loader = DataLoader(dataset, batch_size=47)
+    batch = next(iter(loader))
+
+    # In the original code the concatenation of initial conditions
+    # happens within the model code ...
+    encoded_inits = batch['encoded_inits']
+    encoded_pos = encoded_inits['position'].float()
+    encoded_hd = encoded_inits['head_direction'].float()
+    concat_init = torch.cat([encoded_hd, encoded_pos], axis=2).squeeze()
+
+    # ... they also shrink the initial conditions into 128 by
+    # running through two separate fully connected layers ...
+    l1 = nn.Linear(268, 128)
+    l2 = nn.Linear(268, 128)
+    init_lstm_cell = l1(concat_init)
+    init_lstm_state = l2(concat_init)
+    # ... and this is the initial state of the LSTM
+    (hx, cx) = (init_lstm_state, init_lstm_cell)
+
+    # The sequence for the RNN is the list of agent velocities
+    # at every timestep (all trajectories have 100 steps)
+    ego_vel = batch['ego_vel'].float()
+    # For torch LSTM batch is the second dim
+    lstm_input = ego_vel.transpose(0, 1)
+
+    rnn = nn.LSTMCell(input_size=3, hidden_size=128)
+
+    # Just to make sure that the rnn is in fact recurrent
+    for it in range(10):
+        hx, cx = rnn(lstm_input[it], (hx, cx))
+
+    print('LSTM Cell:', cx.shape)
+    print('LSTM Memory:', hx.shape)
 
 
 if __name__ == '__main__':
