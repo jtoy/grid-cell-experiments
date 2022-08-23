@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.special import logsumexp
+from scipy.special import logsumexp, softmax
 from gridcells.data.structures import Trajectory
 
 
@@ -42,7 +42,9 @@ class DeepMindHeadEncoder:
     def encode(self, head_direction: np.array) -> np.array:
         logp = self.kappa * np.cos(head_direction - self.means[np.newaxis, :])
         log_posteriors = logp - logsumexp(logp, axis=1, keepdims=True)
-        return log_posteriors
+
+        probs = softmax(log_posteriors, axis=-1)
+        return probs
 
 
 class DeepMindPlaceEncoder:
@@ -65,9 +67,9 @@ class DeepMindPlaceEncoder:
         logp = -0.5 * np.sum(normalized_diff, axis=-1)
 
         log_posteriors = logp - logsumexp(logp, axis=1, keepdims=True)
-        # probs = softmax(log_posteriors)
+        probs = softmax(log_posteriors, axis=-1)
 
-        return log_posteriors
+        return probs
 
     def decode(self, x: np.array) -> np.array:
         idxs = x[:, :].argmax(-1)

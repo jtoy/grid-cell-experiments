@@ -4,6 +4,7 @@ from tqdm import tqdm
 from glob import glob
 import datetime as dt
 import torch.nn as nn
+from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -129,16 +130,45 @@ def lstm_pipeline_prototype():
     # at every timestep (all trajectories have 100 steps)
     ego_vel = batch['ego_vel'].float()
     # For torch LSTM batch is the second dim
-    lstm_input = ego_vel.transpose(0, 1)
+    lstm_inputs = ego_vel.transpose(0, 1)
 
     rnn = nn.LSTMCell(input_size=3, hidden_size=128)
+    bottlneck_layer = nn.Linear(128, 256)
+    pc_logits = nn.Linear(256, 256)
+    hd_logits = nn.Linear(256, 12)
 
     # Just to make sure that the rnn is in fact recurrent
-    for it in range(10):
-        hx, cx = rnn(lstm_input[it], (hx, cx))
+    bottlenecks = []
+    predicted_positions = []
+    predicted_hd = []
+    for lstm_input in lstm_inputs:
+        hx, cx = rnn(lstm_input, (hx, cx))
 
-    print('LSTM Cell:', cx.shape)
-    print('LSTM Memory:', hx.shape)
+        bottleneck = bottlneck_layer(hx)
+        bottleneck = nn.functional.dropout(bottleneck, 0.5)
+        bottlenecks.append(bottleneck)
+
+        predicted_position = pc_logits(bottleneck)
+        predicted_positions.append(predicted_position)
+
+        predicted_head_direction = hd_logits(bottleneck)
+        predicted_hd.append(predicted_head_direction)
+
+    bottlenecks = torch.stack(bottlenecks, dim=1)
+    predicted_positions = torch.stack(predicted_positions, dim=1)
+    predicted_hd = torch.stack(predicted_hd, dim=1)
+
+    target_pos = batch['encoded_targets']['position'].float()
+    target_hd = batch['encoded_targets']['head_direction'].float()
+
+    pc_loss = F.cross_entropy(predicted_positions.view(-1, 256), target_pos.argmax(2).view(-1))
+    hd_loss = F.cross_entropy(predicted_hd.view(-1, 12), target_hd.argmax(2).view(-1))
+
+    loss = (pc_loss + hd_loss) / 2
+
+    print('Place loss:', pc_loss.item())
+    print('Head direction loss:', hd_loss.item())
+    print('Total loss value:', loss.item())
 
 
 if __name__ == '__main__':
