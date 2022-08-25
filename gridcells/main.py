@@ -117,46 +117,13 @@ def lstm_pipeline_prototype():
     encoded_hd = encoded_inits['head_direction'].float()
     concat_init = torch.cat([encoded_hd, encoded_pos], axis=2).squeeze()
 
-    # ... they also shrink the initial conditions into 128 by
-    # running through two separate fully connected layers ...
-    l1 = nn.Linear(268, 128)
-    l2 = nn.Linear(268, 128)
-    init_lstm_cell = l1(concat_init)
-    init_lstm_state = l2(concat_init)
-    # ... and this is the initial state of the LSTM
-    (hx, cx) = (init_lstm_state, init_lstm_cell)
-
     # The sequence for the RNN is the list of agent velocities
     # at every timestep (all trajectories have 100 steps)
     ego_vel = batch['ego_vel'].float()
-    # For torch LSTM batch is the second dim
-    lstm_inputs = ego_vel.transpose(0, 1)
 
-    rnn = nn.LSTMCell(input_size=3, hidden_size=128)
-    bottlneck_layer = nn.Linear(128, 256)
-    pc_logits = nn.Linear(256, 256)
-    hd_logits = nn.Linear(256, 12)
+    model = gridcell_models.DeepMindModel()
 
-    # Just to make sure that the rnn is in fact recurrent
-    bottlenecks = []
-    predicted_positions = []
-    predicted_hd = []
-    for lstm_input in lstm_inputs:
-        hx, cx = rnn(lstm_input, (hx, cx))
-
-        bottleneck = bottlneck_layer(hx)
-        bottleneck = nn.functional.dropout(bottleneck, 0.5)
-        bottlenecks.append(bottleneck)
-
-        predicted_position = pc_logits(bottleneck)
-        predicted_positions.append(predicted_position)
-
-        predicted_head_direction = hd_logits(bottleneck)
-        predicted_hd.append(predicted_head_direction)
-
-    bottlenecks = torch.stack(bottlenecks, dim=1)
-    predicted_positions = torch.stack(predicted_positions, dim=1)
-    predicted_hd = torch.stack(predicted_hd, dim=1)
+    predicted_positions, predicted_hd, bottlenecks = model(concat_init, ego_vel)
 
     target_pos = batch['encoded_targets']['position'].float()
     target_hd = batch['encoded_targets']['head_direction'].float()
