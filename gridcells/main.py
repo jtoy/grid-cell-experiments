@@ -4,6 +4,7 @@ from tqdm import tqdm
 from glob import glob
 import datetime as dt
 import torch.nn as nn
+from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -12,6 +13,7 @@ from gridcells.models import main as gridcell_models
 from gridcells.data.dataset import SelfLocationDataset
 from gridcells.training import epochs as training_epochs
 from gridcells.validation import views as validation_views
+from gridcells.data.dataset import EncodedLocationDataset
 
 
 def main():
@@ -91,13 +93,49 @@ def write_validation_plots(
         writer.add_figure(f"validation/trajectories/{idx:02}", fig, epoch)
 
 
-def review_encoding():
+def review_decoding():
     paths = glob('data/torch/*pt')
     dataset = SelfLocationDataset(paths[:1])
     idx = np.random.randint(len(dataset))
     target_pos = dataset[idx]['target_pos']
     position_encoder = data_encoder.DeepMindPlaceEncoder()
     validation_views.review_position_encoder(target_pos, position_encoder)
+
+
+def lstm_pipeline_prototype():
+    paths = glob('data/torch/*pt')
+    encoder = data_encoder.DeepMindishEncoder()
+    dataset = EncodedLocationDataset(paths, encoder)
+
+    loader = DataLoader(dataset, batch_size=47)
+    batch = next(iter(loader))
+
+    # In the original code the concatenation of initial conditions
+    # happens within the model code ...
+    encoded_inits = batch['encoded_inits']
+    encoded_pos = encoded_inits['position'].float()
+    encoded_hd = encoded_inits['head_direction'].float()
+    concat_init = torch.cat([encoded_hd, encoded_pos], axis=2).squeeze()
+
+    # The sequence for the RNN is the list of agent velocities
+    # at every timestep (all trajectories have 100 steps)
+    ego_vel = batch['ego_vel'].float()
+
+    model = gridcell_models.DeepMindModel()
+
+    predicted_positions, predicted_hd, bottlenecks = model(concat_init, ego_vel)
+
+    target_pos = batch['encoded_targets']['position'].float()
+    target_hd = batch['encoded_targets']['head_direction'].float()
+
+    pc_loss = F.cross_entropy(predicted_positions.view(-1, 256), target_pos.argmax(2).view(-1))
+    hd_loss = F.cross_entropy(predicted_hd.view(-1, 12), target_hd.argmax(2).view(-1))
+
+    loss = (pc_loss + hd_loss) / 2
+
+    print('Place loss:', pc_loss.item())
+    print('Head direction loss:', hd_loss.item())
+    print('Total loss value:', loss.item())
 
 
 if __name__ == '__main__':

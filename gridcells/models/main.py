@@ -31,3 +31,44 @@ class WorstModel(nn.Module):
         head_cells = self.out_head_cells(x)
         head_cells = head_cells.view(-1, 100, 1)
         return place_cells, head_cells
+
+
+class DeepMindModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.l1 = nn.Linear(268, 128)
+        self.l2 = nn.Linear(268, 128)
+        self.rnn = nn.LSTMCell(input_size=3, hidden_size=128)
+        self.bottlneck_layer = nn.Linear(128, 256)
+        self.pc_logits = nn.Linear(256, 256)
+        self.hd_logits = nn.Linear(256, 12)
+
+    def forward(self, concat_init, ego_vel):
+        init_lstm_cell = self.l1(concat_init)
+        init_lstm_state = self.l2(concat_init)
+        (hx, cx) = (init_lstm_state, init_lstm_cell)
+
+        lstm_inputs = ego_vel.transpose(0, 1)
+
+        bottlenecks = []
+        predicted_positions = []
+        predicted_hd = []
+        for lstm_input in lstm_inputs:
+            hx, cx = self.rnn(lstm_input, (hx, cx))
+
+            bottleneck = self.bottlneck_layer(hx)
+            bottleneck = nn.functional.dropout(bottleneck, 0.5)
+            bottlenecks.append(bottleneck)
+
+            predicted_position = self.pc_logits(bottleneck)
+            predicted_positions.append(predicted_position)
+
+            predicted_head_direction = self.hd_logits(bottleneck)
+            predicted_hd.append(predicted_head_direction)
+
+        bottlenecks = torch.stack(bottlenecks, dim=1)
+        predicted_positions = torch.stack(predicted_positions, dim=1)
+        predicted_hd = torch.stack(predicted_hd, dim=1)
+
+        return predicted_positions, predicted_hd, bottlenecks
