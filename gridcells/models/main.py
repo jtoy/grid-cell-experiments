@@ -44,6 +44,11 @@ class DeepMindModel(nn.Module):
         self.pc_logits = nn.Linear(256, 256)
         self.hd_logits = nn.Linear(256, 12)
 
+    @property
+    def number_of_parameters(self) -> int:
+        how_many = sum(p.numel() for p in self.parameters())
+        return how_many
+
     def forward(self, concat_init, ego_vel):
         init_lstm_cell = self.l1(concat_init)
         init_lstm_state = self.l2(concat_init)

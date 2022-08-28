@@ -10,7 +10,8 @@ from gridcells.models import main as gridcell_models
 from gridcells.data.dataset import SelfLocationDataset
 from gridcells.data.dataset import EncodedLocationDataset
 from gridcells.validation import views as validation_views
-from gridcells.training.base import main as base_training
+# from gridcells.training.base import main as base_training
+from gridcells.training.deepmind import main as deepmind_training
 
 
 def review_decoding():
@@ -80,4 +81,4 @@ def lstm_pipeline_prototype():
 
 
 if __name__ == '__main__':
-    base_training.train()
+    deepmind_training.train()
