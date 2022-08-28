@@ -23,10 +23,10 @@ def train():
 
     encoder = data_encoder.DeepMindishEncoder()
     t_dataset = EncodedLocationDataset(paths[:50], encoder)
-    v_dataset = EncodedLocationDataset(paths[50:60], encoder)
+    v_dataset = EncodedLocationDataset(paths[50:70], encoder)
 
     train_loader = DataLoader(t_dataset, batch_size=1024, shuffle=True, num_workers=8)
-    # validation_loader = DataLoader(v_dataset, batch_size=1024, shuffle=False, num_workers=8)
+    validation_loader = DataLoader(v_dataset, batch_size=1024, shuffle=False, num_workers=8)
 
     model = gridcell_models.DeepMindModel()
     model = model.to(device)
@@ -42,15 +42,15 @@ def train():
         )
 
         validation_loss = 0
-        # validation_loss = training_epochs.validation_epoch(
-        #     model=model,
-        #     data_loader=validation_loader,
-        #     partial_loss_fn=loss_fn,
-        # )
-        #
-        # writer.add_scalar("training/loss", training_loss, epoch)
-        # writer.add_scalar("validation/accuracy", validation_loss, epoch)
-        #
+        validation_loss = training_epochs.validation_epoch(
+            model=model,
+            data_loader=validation_loader,
+            device=device,
+        )
+
+        writer.add_scalar("training/loss", training_loss, epoch)
+        writer.add_scalar("validation/accuracy", validation_loss, epoch)
+
         epoch_summary = f'Training loss: {training_loss:.2f}, validation loss: {validation_loss:.2f}'
         progress_bar.set_description(epoch_summary)
 
