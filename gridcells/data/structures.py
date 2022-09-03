@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 from dataclasses import dataclass, asdict
 
@@ -11,11 +12,26 @@ class Trajectory:
     target_hd: np.array
     target_pos: np.array
 
+    def asdict(self) -> dict:
+        out = {
+            'init_pos': self.init_pos,
+            'init_hd': self.init_hd,
+            'ego_vel': self.ego_vel,
+            'target_hd': self.target_hd,
+            'target_pos': self.target_pos,
+        }
+        return out
+
     def as_dict(self) -> dict:
         return asdict(self)
 
     def __rich_repr__(self):
         yield 'init_pos', self.init_pos
+        yield 'init_pos', self.init_pos.shape
+        yield 'init_hd', self.init_hd.shape
+        yield 'ego_vel', self.ego_vel.shape
+        yield 'target_hd', self.target_hd.shape
+        yield 'target_pos', self.target_pos.shape
 
     def recreate_trajectory(self) -> np.array:
         """
@@ -67,7 +83,11 @@ class TrajectoryBatch:
         return self.init_pos.shape[0]
 
     def __rich_repr__(self):
-        yield 'init_pos', self.init_pos
+        yield 'init_pos', self.init_pos.shape
+        yield 'init_hd', self.init_hd.shape
+        yield 'ego_vel', self.ego_vel.shape
+        yield 'target_hd', self.target_hd.shape
+        yield 'target_pos', self.target_pos.shape
         yield 'batch_size', self.size
 
     def __getitem__(self, idx: int) -> Trajectory:
@@ -79,3 +99,87 @@ class TrajectoryBatch:
             target_pos=self.target_pos[idx],
         )
         return trajectory
+
+
+@dataclass
+class EncodedTrajectory:
+    init_pos: torch.Tensor
+    init_hd: torch.Tensor
+    ego_vel: torch.Tensor
+
+    encoded_initial_pos: torch.Tensor
+    encoded_initial_hd: torch.Tensor
+    encoded_target_pos: torch.Tensor
+    encoded_target_hd: torch.Tensor
+
+    target_hd: torch.Tensor
+    target_pos: torch.Tensor
+
+    def asdict(self) -> dict:
+        out = {
+            'init_pos': self.init_pos,
+            'init_hd': self.init_hd,
+            'ego_vel': self.ego_vel,
+            'target_hd': self.target_hd,
+            'target_pos': self.target_pos,
+            'encoded_initial_pos': self.encoded_initial_pos,
+            'encoded_initial_hd': self.encoded_initial_hd,
+            'encoded_target_pos': self.encoded_target_pos,
+            'encoded_target_hd': self.encoded_target_hd,
+        }
+        return out
+
+    def __rich_repr__(self):
+        yield 'encoded_trajectory', self.init_pos.shape
+
+
+@dataclass
+class EncodedTrajectoryBatch:
+    init_pos: torch.Tensor
+    init_hd: torch.Tensor
+
+    encoded_initial_pos: torch.Tensor
+    encoded_initial_hd: torch.Tensor
+    encoded_target_pos: torch.Tensor
+    encoded_target_hd: torch.Tensor
+
+    ego_vel: torch.Tensor
+    target_hd: torch.Tensor
+    target_pos: torch.Tensor
+
+    def __rich_repr__(self):
+        yield 'init_pos', self.init_pos.shape
+        yield 'init_hd', self.init_hd.shape
+        yield 'encoded_target_hd', self.encoded_target_hd.shape
+        yield 'encoded_target_pos', self.encoded_target_pos.shape
+        yield 'ego_vel', self.ego_vel.shape
+        yield 'target_hd', self.target_hd.shape
+        yield 'target_pos', self.target_pos.shape
+
+    def __getitem__(self, idx: int) -> Trajectory:
+        trajectory = EncodedTrajectory(
+            init_pos=self.init_pos[idx],
+            init_hd=self.init_hd[idx],
+            ego_vel=self.ego_vel[idx],
+            target_hd=self.target_hd[idx],
+            target_pos=self.target_pos[idx],
+            encoded_target_pos=self.encoded_target_pos[idx],
+            encoded_target_hd=self.encoded_target_hd[idx],
+            encoded_initial_hd=self.encoded_initial_hd[idx],
+            encoded_initial_pos=self.encoded_initial_pos[idx],
+        )
+        return trajectory
+
+    @property
+    def size(self) -> int:
+        return self.init_pos.shape[0]
+
+    def asdict(self) -> dict:
+        out = {
+            'init_pos': self.init_pos,
+            'init_hd': self.init_hd,
+            'ego_vel': self.ego_vel,
+            'target_hd': self.target_hd,
+            'target_pos': self.target_pos,
+        }
+        return out

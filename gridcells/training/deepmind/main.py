@@ -5,28 +5,40 @@ import datetime as dt
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from gridcells.data import encoder as data_encoder
 from gridcells.models import main as gridcell_models
-from gridcells.data.dataset import EncodedLocationDataset
+from gridcells.data.dataset import CachedEncodedDataset
 from gridcells.training.deepmind import epochs as training_epochs
 
 
 def train():
-    n_epochs = 21
+    n_epochs = 201
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     date_time = dt.datetime.now().strftime("%m%d_%H%M")
     run_name = "DM_" + date_time
     writer = SummaryWriter(f"tmp/tensorboard/{run_name}")
 
-    paths = glob('data/torch/*pt')
+    paths = glob('data/encoded_pickles/*pickle')
 
-    encoder = data_encoder.DeepMindishEncoder()
-    t_dataset = EncodedLocationDataset(paths[:50], encoder)
-    v_dataset = EncodedLocationDataset(paths[50:70], encoder)
+    t_dataset = CachedEncodedDataset(paths[:30])
+    v_dataset = CachedEncodedDataset(paths[30:40])
 
-    train_loader = DataLoader(t_dataset, batch_size=1024, shuffle=True, num_workers=8)
-    validation_loader = DataLoader(v_dataset, batch_size=1024, shuffle=False, num_workers=8)
+    batch_size = 2500
+    num_workers = 4
+    train_loader = DataLoader(
+        t_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=True,
+    )
+    validation_loader = DataLoader(
+        v_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=True,
+    )
 
     model = gridcell_models.DeepMindModel()
     model = model.to(device)
@@ -41,7 +53,6 @@ def train():
             device=device,
         )
 
-        validation_loss = 0
         validation_loss = training_epochs.validation_epoch(
             model=model,
             data_loader=validation_loader,
@@ -53,5 +64,7 @@ def train():
 
         epoch_summary = f'Training loss: {training_loss:.2f}, validation loss: {validation_loss:.2f}'
         progress_bar.set_description(epoch_summary)
+
+    torch.save(model.state_dict(), 'tmp/dp-model.pt')
 
     return model
