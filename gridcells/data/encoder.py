@@ -43,6 +43,11 @@ class DeepMindHeadEncoder:
         probs = softmax(log_posteriors, axis=-1)
         return probs.astype(np.float32)
 
+    def decode(self, x: np.array) -> np.array:
+        idxs = x[:, :].argmax(-1)
+        recreated = np.array([self.means[idx] for idx in idxs])
+        return recreated
+
 
 class DeepMindPlaceEncoder:
     def __init__(self, n_cells: int = 256):
