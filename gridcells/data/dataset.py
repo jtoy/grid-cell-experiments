@@ -1,7 +1,8 @@
+import pickle
 from pathlib import Path
 from torch.utils.data import Dataset
 
-from gridcells.data.structures import Trajectory
+from gridcells.data.structures import Trajectory, EncodedTrajectoryBatch
 from gridcells.data import main as gridcell_data
 
 
@@ -37,5 +38,22 @@ class EncodedLocationDataset(SelfLocationDataset):
         trajectory = self.get_trajectory(idx)
         record = self.encoder.encode(trajectory)
 
-        record |= trajectory.as_dict()
+        record |= trajectory.asdict()
         return record
+
+
+class CachedEncodedDataset(SelfLocationDataset):
+    def __init__(self, paths: list[Path]):
+        """
+            paths: have to point to our version of the data, e.g.: 'data/torch/9-99.pt'
+        """
+        self.paths = paths
+        self.cached_batches = [pickle.load(open(path, 'rb')) for path in paths]
+        self.batch_trajectories = [EncodedTrajectoryBatch(**b) for b in self.cached_batches]
+
+    def __len__(self) -> int:
+        return sum(batch.size for batch in self.batch_trajectories)
+
+    def __getitem__(self, idx: int) -> dict:
+        trajectory = self.get_trajectory(idx)
+        return trajectory.asdict()

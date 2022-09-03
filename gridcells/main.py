@@ -1,5 +1,7 @@
 import scipy
 import torch
+import pickle
+from tqdm import tqdm
 import numpy as np
 from glob import glob
 from torch.nn import functional as F
@@ -10,7 +12,7 @@ from gridcells.models import main as gridcell_models
 from gridcells.data.dataset import SelfLocationDataset
 from gridcells.data.dataset import EncodedLocationDataset
 from gridcells.validation import views as validation_views
-# from gridcells.training.base import main as base_training
+from gridcells.training.base import main as base_training
 from gridcells.training.deepmind import main as deepmind_training
 
 
@@ -80,5 +82,29 @@ def lstm_pipeline_prototype():
         rate_maps.append(rate_map)
 
 
+def cache_encoded_dataset():
+    paths = glob('data/torch/*pt')
+    batch_size = 10_000
+    encoder = data_encoder.DeepMindishEncoder()
+    dataset = EncodedLocationDataset(paths, encoder)
+    loader = DataLoader(dataset, batch_size=batch_size)
+
+    for it, batch in tqdm(enumerate(loader), total=len(loader)):
+        savepath = f'data/encoded_pickles/{it:03}.pickle'
+        with open(savepath, 'wb') as f:
+            pickle.dump(batch, f)
+
+
 if __name__ == '__main__':
-    deepmind_training.train()
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--process", required=False, type=str)
+    args = parser.parse_args()
+
+    if args.process == 'encode_dataset':
+        cache_encoded_dataset()
+    elif args.process == 'baseline_train':
+        base_training.train(n_epochs=1001)
+    else:
+        deepmind_training.train()

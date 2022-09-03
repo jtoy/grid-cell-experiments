@@ -11,20 +11,17 @@ class DeepMindishEncoder:
         self.place_encoder = DeepMindPlaceEncoder(n_cells=n_place_cells)
         self.head_direction_encoder = DeepMindHeadEncoder(n_cells=n_head_cells)
 
-    def encode(self, trajectory: Trajectory):
-        initial_conditions = {
-            'position': self.place_encoder.encode(trajectory.init_pos[np.newaxis, :]),
-            'head_direction': self.head_direction_encoder.encode(trajectory.init_hd),
-        }
-
-        targets = {
-            'position': self.place_encoder.encode(trajectory.target_pos),
-            'head_direction': self.head_direction_encoder.encode(trajectory.target_hd),
-        }
+    def encode(self, trajectory: Trajectory) -> dict:
+        encoded_initial_pos = self.place_encoder.encode(trajectory.init_pos[np.newaxis, :])
+        encoded_initial_hd = self.head_direction_encoder.encode(trajectory.init_hd)
+        encoded_target_pos = self.place_encoder.encode(trajectory.target_pos)
+        encoded_target_hd = self.head_direction_encoder.encode(trajectory.target_hd)
 
         record = {
-            'encoded_inits': initial_conditions,
-            'encoded_targets': targets,
+            'encoded_initial_pos': encoded_initial_pos,
+            'encoded_initial_hd': encoded_initial_hd,
+            'encoded_target_pos': encoded_target_pos,
+            'encoded_target_hd': encoded_target_hd,
         }
         return record
 
@@ -44,7 +41,12 @@ class DeepMindHeadEncoder:
         log_posteriors = logp - logsumexp(logp, axis=1, keepdims=True)
 
         probs = softmax(log_posteriors, axis=-1)
-        return probs
+        return probs.astype(np.float32)
+
+    def decode(self, x: np.array) -> np.array:
+        idxs = x[:, :].argmax(-1)
+        recreated = np.array([self.means[idx] for idx in idxs])
+        return recreated
 
 
 class DeepMindPlaceEncoder:
@@ -66,10 +68,11 @@ class DeepMindPlaceEncoder:
 
         logp = -0.5 * np.sum(normalized_diff, axis=-1)
 
+        # TODO Make sure to do logsumexp on the "means" axis
         log_posteriors = logp - logsumexp(logp, axis=1, keepdims=True)
         probs = softmax(log_posteriors, axis=-1)
 
-        return probs
+        return probs.astype(np.float32)
 
     def decode(self, x: np.array) -> np.array:
         idxs = x[:, :].argmax(-1)

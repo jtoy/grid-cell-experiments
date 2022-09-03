@@ -1,4 +1,5 @@
 import torch
+from tqdm import tqdm
 import torch.nn as nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
@@ -26,7 +27,9 @@ def train_epoch(
 
     loss_metric = LossMetric()
 
-    for batch in data_loader:
+    progress_bar = tqdm(data_loader, total=len(data_loader), leave=False)
+    # for batch in data_loader:
+    for batch in progress_bar:
         optimizer.zero_grad()
 
         loss = process(model, batch, device)
@@ -35,8 +38,9 @@ def train_epoch(
         loss_metric.n_samples += 1
 
         loss.backward()
-
         optimizer.step()
+        desc = f'Training Loss: {loss.item():.2f}'
+        progress_bar.set_description(desc)
 
     return loss_metric.average_loss
 
@@ -50,11 +54,16 @@ def validation_epoch(
 
     loss_metric = LossMetric()
 
-    for batch in data_loader:
+    # for batch in data_loader:
+    progress_bar = tqdm(data_loader, total=len(data_loader), leave=False)
+    for batch in progress_bar:
         loss = process(model, batch, device)
 
         loss_metric.total_loss += loss.item()
         loss_metric.n_samples += 1
+
+        desc = f'Validation Loss: {loss.item():.2f}'
+        progress_bar.set_description(desc)
 
     return loss_metric.average_loss
 
@@ -65,15 +74,14 @@ def process(
     device: torch.device,
 ) -> torch.tensor:
     # Model inputs
-    ego_vel = batch['ego_vel'].float().to(device)
-    encoded_inits = batch['encoded_inits']
-    encoded_pos = encoded_inits['position'].float().to(device)
-    encoded_hd = encoded_inits['head_direction'].float().to(device)
+    ego_vel = batch['ego_vel'].to(device, dtype=torch.float32)
+    encoded_pos = batch['encoded_initial_pos'].to(device, dtype=torch.float32)
+    encoded_hd = batch['encoded_initial_hd'].to(device, dtype=torch.float32)
     concat_init = torch.cat([encoded_hd, encoded_pos], axis=2).squeeze()
 
     # Model outputs
-    target_pos = batch['encoded_targets']['position'].float().to(device)
-    target_hd = batch['encoded_targets']['head_direction'].float().to(device)
+    target_pos = batch['encoded_target_pos'].to(device, dtype=torch.float32)
+    target_hd = batch['encoded_target_hd'].to(device, dtype=torch.float32)
 
     predicted_positions, predicted_hd, bottlenecks = model(concat_init, ego_vel)
 

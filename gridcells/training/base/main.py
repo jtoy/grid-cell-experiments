@@ -12,9 +12,7 @@ from gridcells.validation import views as validation_views
 from gridcells.training.base import epochs as training_epochs
 
 
-def train():
-    n_epochs = 51
-
+def train(n_epochs: int = 51):
     date_time = dt.datetime.now().strftime("%m%d_%H%M")
     run_name = "GC_" + date_time
     writer = SummaryWriter(f"tmp/tensorboard/{run_name}")
