@@ -1,6 +1,8 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
+from gridcells.validation import sac as SAC
+
 
 def compare_model_output(
     init_pos: np.array,
@@ -54,3 +56,38 @@ def review_position_encoder(positions: np.array, encoder):
     ax.set_ylim(-1.1, 1.1)
 
     ax.legend()
+
+
+def draw_activations_ratemap(
+    xs: np.array,
+    ys: np.array,
+    activations: np.array,
+) -> plt.Figure:
+    f, axes = plt.subplots(
+        nrows=16,
+        ncols=16,
+        figsize=[12, 12],
+        gridspec_kw={
+            'hspace': 0,
+            'wspace': 0
+        },
+    )
+    for it in range(16):
+        for jt in range(16):
+            kt = it * 16 + jt
+            ax = axes[it][jt]
+            ratemap = SAC.calculate_ratemap(xs, ys, activations[:, kt])
+            ax.imshow(ratemap)
+            ax.tick_params(
+                axis='both',
+                which='both',
+                bottom=False,
+                top=False,
+                left=False,
+                right=False,
+                labelbottom=False,
+                labelleft=False
+            )
+    f.tight_layout()
+
+    return f

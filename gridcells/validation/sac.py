@@ -2,6 +2,19 @@ import scipy
 import numpy as np
 
 
+def calculate_ratemap(xs: np.array, ys: np.array, activations: np.array):
+    coord_range = ((-1.1, 1.1), (-1.1, 1.1))
+    ratemap = scipy.stats.binned_statistic_2d(
+        xs,
+        ys,
+        activations,
+        bins=20,
+        statistic='mean',
+        range=coord_range,
+    )[0]
+    return ratemap
+
+
 def calculate_sac(seq1):
     """Calculating spatial autocorrelogram."""
     seq2 = seq1
