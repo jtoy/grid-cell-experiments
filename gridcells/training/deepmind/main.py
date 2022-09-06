@@ -24,12 +24,12 @@ def train():
 
     paths = glob('data/encoded_pickles/*pickle')
 
-    t_dataset = CachedEncodedDataset(paths[:30])
-    v_dataset = CachedEncodedDataset(paths[30:40])
+    t_dataset = CachedEncodedDataset(paths[:10])
+    v_dataset = CachedEncodedDataset(paths[30:35])
     test_batch = make_test_batch(paths[42])
 
-    batch_size = 2500
-    num_workers = 4
+    batch_size = 10
+    num_workers = 8
     train_loader = DataLoader(
         t_dataset,
         batch_size=batch_size,
@@ -39,7 +39,7 @@ def train():
     )
     validation_loader = DataLoader(
         v_dataset,
-        batch_size=batch_size,
+        batch_size=2500,
         shuffle=False,
         num_workers=num_workers,
         pin_memory=True,
@@ -47,7 +47,21 @@ def train():
 
     model = gridcell_models.DeepMindModel()
     model = model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.98), eps=1e-9)
+    # Default value in tensorflow is different than default value in torch
+    # it's also called *rho* rather than *alpha* (I think)
+    # alpha = 0.9
+    # momentum = 0.9
+    # learning_rate = 1e-4
+    # eps = 1e-10
+    # optimizer = torch.optim.RMSprop(
+    #     params=model.parameters(),
+    #     lr=learning_rate,
+    #     alpha=alpha,
+    #     momentum=momentum,
+    #     eps=eps,
+    # )
+    #
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, betas=(0.9, 0.98), eps=1e-9)
 
     progress_bar = tqdm(range(n_epochs), total=n_epochs)
     for epoch in progress_bar:
@@ -71,17 +85,17 @@ def train():
         progress_bar.set_description(epoch_summary)
 
         # Detailed validation
-        if epoch % 10 == 0:
-            torch.save(model.state_dict(), 'tmp/dp-model.pt')
+        if epoch % 2 == 0:
+            torch.save(model.state_dict(), f'tmp/{run_name}.pt')
             fig = draw_ratemaps(model, device, test_batch)
             writer.add_figure("validation/activation_ratemaps", fig, epoch)
 
-    torch.save(model.state_dict(), 'tmp/dp-model.pt')
+    torch.save(model.state_dict(), f'tmp/{run_name}.pt')
 
     return model
 
 
-def review(model_state_path: str):
+def review_path_integration(model_state_path: str):
     # Run tests on cpu
     device = torch.device("cpu")
 

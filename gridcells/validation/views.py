@@ -77,7 +77,7 @@ def draw_activations_ratemap(
             kt = it * 16 + jt
             ax = axes[it][jt]
             ratemap = SAC.calculate_ratemap(xs, ys, activations[:, kt])
-            ax.imshow(ratemap)
+            ax.imshow(ratemap, interpolation=None, cmap='jet')
             ax.tick_params(
                 axis='both',
                 which='both',
