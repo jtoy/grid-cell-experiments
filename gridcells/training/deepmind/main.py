@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import torch.nn as nn
 from tqdm import tqdm
 from glob import glob
 import datetime as dt
@@ -25,6 +26,7 @@ def train():
 
     t_dataset = CachedEncodedDataset(paths[:30])
     v_dataset = CachedEncodedDataset(paths[30:40])
+    test_batch = make_test_batch(paths[42])
 
     batch_size = 2500
     num_workers = 4
@@ -67,6 +69,12 @@ def train():
 
         epoch_summary = f'Training loss: {training_loss:.2f}, validation loss: {validation_loss:.2f}'
         progress_bar.set_description(epoch_summary)
+
+        # Detailed validation
+        if epoch % 10 == 0:
+            torch.save(model.state_dict(), 'tmp/dp-model.pt')
+            fig = draw_ratemaps(model, device, test_batch)
+            writer.add_figure("validation/activation_ratemaps", fig, epoch)
 
     torch.save(model.state_dict(), 'tmp/dp-model.pt')
 
@@ -126,3 +134,49 @@ def review(model_state_path: str):
         )
         savepath = f'tmp/dp-review-{it:02}.png'
         fig.savefig(savepath)
+
+
+def make_test_batch(path: str, n_samples: int = 5000) -> dict:
+    dataset = CachedEncodedDataset([path])
+    loader = DataLoader(dataset, batch_size=n_samples, shuffle=True)
+
+    batch = next(iter(loader))
+
+    return batch
+
+
+def draw_ratemaps(model: nn.Module, device: torch.device, batch: dict):
+    ego_vel = batch['ego_vel'].to(device)
+    encoded_pos = batch['encoded_initial_pos'].to(device)
+    encoded_hd = batch['encoded_initial_hd'].to(device)
+    concat_init = torch.cat([encoded_hd, encoded_pos], axis=2).squeeze()
+    target_pos = batch['target_pos'].numpy()
+
+    model.eval()
+    predicted_positions, predicted_hd, bottlenecks = model(concat_init, ego_vel)
+
+    data_xy = target_pos.reshape(-1, target_pos.shape[-1])
+    x = data_xy[:, 0]
+    y = data_xy[:, 1]
+
+    activations = bottlenecks.reshape(-1, 256).detach().cpu().numpy()
+    fig = validation_views.draw_activations_ratemap(x, y, activations)
+    return fig
+
+
+def review_ratemaps(model_state_path: str):
+    # Run tests on cpu
+    device = torch.device("cpu")
+
+    model = gridcell_models.DeepMindModel()
+    model_state = torch.load(model_state_path)
+    model.load_state_dict(model_state)
+    model.cpu().eval()
+
+    # Make a dataset from a single path that was
+    # not used during trainig and validation
+    paths = glob('data/encoded_pickles/*pickle')
+    path = paths[-1]
+    batch = make_test_batch(path)
+
+    draw_ratemaps(model, device, batch)
