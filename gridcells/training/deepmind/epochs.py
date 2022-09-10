@@ -97,8 +97,6 @@ def process(
     pc_loss = F.cross_entropy(predicted_positions.view(-1, 256), target_pos.argmax(2).view(-1))
     hd_loss = F.cross_entropy(predicted_hd.view(-1, 12), target_hd.argmax(2).view(-1))
 
-    loss = pc_loss + hd_loss
-    WEIGHT_DECAY = 1e-5
-    loss += model.l2_loss * WEIGHT_DECAY
+    loss = pc_loss + hd_loss + model.regularization()
 
     return loss

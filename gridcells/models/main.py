@@ -34,8 +34,11 @@ class WorstModel(nn.Module):
 
 
 class DeepMindModel(nn.Module):
-    def __init__(self):
+    def __init__(self, weight_decay: float = 1e-5):
         super().__init__()
+
+        # TODO Move to config
+        self.WEIGHT_DECAY = weight_decay
 
         self.l1 = nn.Linear(268, 128)
         self.l2 = nn.Linear(268, 128)
@@ -79,6 +82,10 @@ class DeepMindModel(nn.Module):
         return predicted_positions, predicted_hd, bottlenecks
 
     @property
-    def l2_loss(self):
+    def l2_bottleneck(self):
         loss = self.bottleneck_layer.weight.norm(2) + self.pc_logits.weight.norm(2) + self.hd_logits.weight.norm(2)
+        return loss
+
+    def regularization(self) -> torch.Tensor:
+        loss = self.WEIGHT_DECAY * self.l2_bottleneck
         return loss

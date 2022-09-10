@@ -7,6 +7,7 @@ import datetime as dt
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
+from gridcells.validation import sac as SAC
 from gridcells.data import encoder as data_encoder
 from gridcells.models import main as gridcell_models
 from gridcells.data.dataset import CachedEncodedDataset
@@ -24,7 +25,7 @@ def train():
 
     paths = glob('data/encoded_pickles/*pickle')
 
-    t_dataset = CachedEncodedDataset(paths[:10])
+    t_dataset = CachedEncodedDataset(paths[:5])
     v_dataset = CachedEncodedDataset(paths[30:35])
     test_batch = make_test_batch(paths[42])
 
@@ -60,8 +61,7 @@ def train():
     #     momentum=momentum,
     #     eps=eps,
     # )
-    #
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, betas=(0.9, 0.98), eps=1e-9)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.98), eps=1e-9)
 
     progress_bar = tqdm(range(n_epochs), total=n_epochs)
     for epoch in progress_bar:
@@ -81,14 +81,28 @@ def train():
         writer.add_scalar("training/loss", training_loss, epoch)
         writer.add_scalar("validation/accuracy", validation_loss, epoch)
 
-        epoch_summary = f'Training loss: {training_loss:.2f}, validation loss: {validation_loss:.2f}'
+        epoch_summary = f'Training: {training_loss:.2f}, validation: {validation_loss:.2f}'
         progress_bar.set_description(epoch_summary)
 
         # Detailed validation
         if epoch % 2 == 0:
             torch.save(model.state_dict(), f'tmp/{run_name}.pt')
-            fig = draw_ratemaps(model, device, test_batch)
-            writer.add_figure("validation/activation_ratemaps", fig, epoch)
+            ratemaps = make_scored_ratemaps(model, device, test_batch)
+
+            # Passing a 'sort key' as an argument to the view might be cleaner
+            ratemaps = sorted(ratemaps, key=lambda r: -r.s60)
+            fig = validation_views.draw_rated_activations_ratemaps(
+                ratemaps=ratemaps,
+                scores=[r.s60 for r in ratemaps],
+            )
+            writer.add_figure("validation/s60_ratemaps", fig, epoch)
+
+            ratemaps = sorted(ratemaps, key=lambda r: -r.s90)
+            fig = validation_views.draw_rated_activations_ratemaps(
+                ratemaps=ratemaps,
+                scores=[r.s90 for r in ratemaps],
+            )
+            writer.add_figure("validation/s90_ratemaps", fig, epoch)
 
     torch.save(model.state_dict(), f'tmp/{run_name}.pt')
 
@@ -159,6 +173,29 @@ def make_test_batch(path: str, n_samples: int = 5000) -> dict:
     return batch
 
 
+def make_scored_ratemaps(model: nn.Module, device: torch.device, batch: dict) -> list[SAC.Ratemap]:
+    ego_vel = batch['ego_vel'].to(device)
+    encoded_pos = batch['encoded_initial_pos'].to(device)
+    encoded_hd = batch['encoded_initial_hd'].to(device)
+    concat_init = torch.cat([encoded_hd, encoded_pos], axis=2).squeeze()
+    target_pos = batch['target_pos'].numpy()
+
+    model.eval()
+    predicted_positions, predicted_hd, bottlenecks = model(concat_init, ego_vel)
+
+    data_xy = target_pos.reshape(-1, target_pos.shape[-1])
+    x = data_xy[:, 0]
+    y = data_xy[:, 1]
+
+    activations = bottlenecks.reshape(-1, 256).detach().cpu().numpy()
+    ratemaps = [SAC.calculate_ratemap(x, y, activations[:, kt]) for kt in range(256)]
+
+    scorer = SAC.GridScorer()
+    rated_maps = [scorer.get_grid_score(r) for r in ratemaps]
+
+    return rated_maps
+
+
 def draw_ratemaps(model: nn.Module, device: torch.device, batch: dict):
     ego_vel = batch['ego_vel'].to(device)
     encoded_pos = batch['encoded_initial_pos'].to(device)
@@ -174,7 +211,15 @@ def draw_ratemaps(model: nn.Module, device: torch.device, batch: dict):
     y = data_xy[:, 1]
 
     activations = bottlenecks.reshape(-1, 256).detach().cpu().numpy()
-    fig = validation_views.draw_activations_ratemap(x, y, activations)
+    ratemaps = [SAC.calculate_ratemap(x, y, activations[:, kt]) for kt in range(256)]
+
+    scorer = SAC.GridScorer()
+    rated_maps = [scorer.get_grid_score(r) for r in ratemaps]
+
+    # Sort by the hexagonal grid factor, descending
+    ratemaps = sorted(rated_maps, key=lambda r: -r.s60)
+
+    fig = validation_views.draw_rated_activations_ratemaps(ratemaps)
     return fig
 
 

@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from gridcells.validation import sac as SAC
+from gridcells.validation.sac import Ratemap
 
 
 def compare_model_output(
@@ -58,10 +58,10 @@ def review_position_encoder(positions: np.array, encoder):
     ax.legend()
 
 
-def draw_activations_ratemap(
+def draw_activations_ratemaps(
     xs: np.array,
     ys: np.array,
-    activations: np.array,
+    ratemaps: list[np.array],
 ) -> plt.Figure:
     f, axes = plt.subplots(
         nrows=16,
@@ -76,8 +76,46 @@ def draw_activations_ratemap(
         for jt in range(16):
             kt = it * 16 + jt
             ax = axes[it][jt]
-            ratemap = SAC.calculate_ratemap(xs, ys, activations[:, kt])
+            ratemap = ratemaps[kt]
             ax.imshow(ratemap, interpolation=None, cmap='jet')
+            ax.tick_params(
+                axis='both',
+                which='both',
+                bottom=False,
+                top=False,
+                left=False,
+                right=False,
+                labelbottom=False,
+                labelleft=False
+            )
+    f.tight_layout()
+
+    return f
+
+
+def draw_rated_activations_ratemaps(
+    ratemaps: list[Ratemap],
+    scores: list[float],
+) -> plt.Figure:
+    f, axes = plt.subplots(
+        nrows=16,
+        ncols=16,
+        figsize=[13, 13],
+        # gridspec_kw={
+        #     'wspace': 1.,
+        #     # 'hspace': 0.0
+        # },
+    )
+    for it in range(16):
+        for jt in range(16):
+            kt = it * 16 + jt
+            ax = axes[it][jt]
+            ratemap = ratemaps[kt]
+            ax.imshow(ratemap.ratemap, interpolation=None, cmap='jet')
+
+            score = scores[kt]
+            title = f'{score:.2f}'
+            ax.set_title(title, fontsize=8)
             ax.tick_params(
                 axis='both',
                 which='both',
