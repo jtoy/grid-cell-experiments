@@ -11,6 +11,7 @@ from gridcells.models import main as gridcell_models
 from gridcells.data.dataset import CachedEncodedDataset
 from gridcells.validation import views as validation_views
 from gridcells.training.deepmind import epochs as training_epochs
+from gridcells.training.base.rmsprop_tf import RMSprop as RMSprop_tf
 
 
 def train():
@@ -45,7 +46,9 @@ def train():
 
     model = gridcell_models.DeepMindModel()
     model = model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.98), eps=1e-9)
+    #optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.98), eps=1e-9)
+    optimizer = RMSprop_tf(model.parameters(), lr=0.001)
+
 
     progress_bar = tqdm(range(n_epochs), total=n_epochs)
     for epoch in progress_bar:
