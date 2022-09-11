@@ -4,6 +4,7 @@ import torch.nn as nn
 from tqdm import tqdm
 from glob import glob
 import datetime as dt
+from dataclasses import dataclass
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -15,8 +16,16 @@ from gridcells.validation import views as validation_views
 from gridcells.training.deepmind import epochs as training_epochs
 
 
+@dataclass
+class Config:
+    batch_size: int = 10
+    n_epochs: int = 301
+
+    weight_decay: float = 1e-5
+
+
 def train():
-    n_epochs = 201
+    config = Config()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     date_time = dt.datetime.now().strftime("%m%d_%H%M")
@@ -27,13 +36,12 @@ def train():
 
     t_dataset = CachedEncodedDataset(paths[:5])
     v_dataset = CachedEncodedDataset(paths[30:35])
-    test_batch = make_test_batch(paths[42])
+    test_batch = make_test_batch(paths[44])
 
-    batch_size = 10
     num_workers = 8
     train_loader = DataLoader(
         t_dataset,
-        batch_size=batch_size,
+        batch_size=config.batch_size,
         shuffle=True,
         num_workers=num_workers,
         pin_memory=True,
@@ -46,24 +54,24 @@ def train():
         pin_memory=True,
     )
 
-    model = gridcell_models.DeepMindModel()
+    model = gridcell_models.DeepMindModel(config.weight_decay)
     model = model.to(device)
     # Default value in tensorflow is different than default value in torch
     # it's also called *rho* rather than *alpha* (I think)
-    # alpha = 0.9
-    # momentum = 0.9
-    # learning_rate = 1e-4
-    # eps = 1e-10
-    # optimizer = torch.optim.RMSprop(
-    #     params=model.parameters(),
-    #     lr=learning_rate,
-    #     alpha=alpha,
-    #     momentum=momentum,
-    #     eps=eps,
-    # )
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.98), eps=1e-9)
+    alpha = 0.9
+    momentum = 0.9
+    learning_rate = 1e-4
+    eps = 1e-10
+    optimizer = torch.optim.RMSprop(
+        params=model.parameters(),
+        lr=learning_rate,
+        alpha=alpha,
+        momentum=momentum,
+        eps=eps,
+    )
+    # optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.98), eps=1e-9)
 
-    progress_bar = tqdm(range(n_epochs), total=n_epochs)
+    progress_bar = tqdm(range(config.n_epochs), total=config.n_epochs)
     for epoch in progress_bar:
         training_loss = training_epochs.train_epoch(
             model=model,
@@ -86,7 +94,7 @@ def train():
 
         # Detailed validation
         if epoch % 2 == 0:
-            torch.save(model.state_dict(), f'tmp/{run_name}.pt')
+            save_experiment(model, optimizer, config, run_name)
             ratemaps = make_scored_ratemaps(model, device, test_batch)
 
             # Passing a 'sort key' as an argument to the view might be cleaner
@@ -104,9 +112,23 @@ def train():
             )
             writer.add_figure("validation/s90_ratemaps", fig, epoch)
 
-    torch.save(model.state_dict(), f'tmp/{run_name}.pt')
+    save_experiment(model, optimizer, config, run_name)
 
     return model
+
+
+def save_experiment(
+    model: nn.Module,
+    optimizer: torch.optim.Optimizer,
+    config: Config,
+    run_name: str,
+):
+    experiment_state = {
+        'config': config,
+        'optimizer': optimizer.state_dict(),
+        'model': model.state_dict(),
+    }
+    torch.save(experiment_state, f'tmp/{run_name}.pt')
 
 
 def review_path_integration(model_state_path: str):
