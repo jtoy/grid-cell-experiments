@@ -47,7 +47,7 @@ def train():
     model = gridcell_models.DeepMindModel()
     model = model.to(device)
     #optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.98), eps=1e-9)
-    optimizer = RMSprop_tf(model.parameters(), lr=0.001)
+    optimizer = RMSprop_tf(model.parameters(), lr=0.001,momentum=0.9, alpha=0.9, eps=1e-10)
 
 
     progress_bar = tqdm(range(n_epochs), total=n_epochs)
