@@ -64,7 +64,7 @@ def train():
     momentum = 0.9
     learning_rate = 1e-4
     eps = 1e-10
-    optimizer = torch.optim.RMSprop_tf(
+    optimizer = RMSprop_tf(
         params=model.parameters(),
         lr=learning_rate,
         momentum=momentum,
