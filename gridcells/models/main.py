@@ -34,13 +34,15 @@ class WorstModel(nn.Module):
 
 
 class DeepMindModel(nn.Module):
-    def __init__(self):
+    def __init__(self, weight_decay: float = 1e-5):
         super().__init__()
+
+        self.weight_decay = weight_decay
 
         self.l1 = nn.Linear(268, 128)
         self.l2 = nn.Linear(268, 128)
         self.rnn = nn.LSTMCell(input_size=3, hidden_size=128)
-        self.bottlneck_layer = nn.Linear(128, 256, bias=False)
+        self.bottleneck_layer = nn.Linear(128, 256, bias=False)
         self.pc_logits = nn.Linear(256, 256)
         self.hd_logits = nn.Linear(256, 12)
 
@@ -62,7 +64,7 @@ class DeepMindModel(nn.Module):
         for lstm_input in lstm_inputs:
             hx, cx = self.rnn(lstm_input, (hx, cx))
 
-            bottleneck = self.bottlneck_layer(hx)
+            bottleneck = self.bottleneck_layer(hx)
             bottleneck = nn.functional.dropout(bottleneck, 0.5)
             bottlenecks.append(bottleneck)
 
@@ -77,3 +79,12 @@ class DeepMindModel(nn.Module):
         predicted_hd = torch.stack(predicted_hd, dim=1)
 
         return predicted_positions, predicted_hd, bottlenecks
+
+    @property
+    def l2_bottleneck(self):
+        loss = self.bottleneck_layer.weight.norm(2) + self.pc_logits.weight.norm(2) + self.hd_logits.weight.norm(2)
+        return loss
+
+    def regularization(self) -> torch.Tensor:
+        loss = self.weight_decay * self.l2_bottleneck
+        return loss

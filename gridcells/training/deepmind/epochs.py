@@ -27,9 +27,11 @@ def train_epoch(
 
     loss_metric = LossMetric()
 
-    progress_bar = tqdm(data_loader, total=len(data_loader), leave=False)
+    batches_per_epoch = 1000
+    # progress_bar = tqdm(data_loader, total=len(data_loader), leave=False)
+    progress_bar = tqdm(enumerate(data_loader), total=batches_per_epoch, leave=False)
     # for batch in data_loader:
-    for batch in progress_bar:
+    for it, batch in progress_bar:
         optimizer.zero_grad()
 
         loss = process(model, batch, device)
@@ -38,9 +40,15 @@ def train_epoch(
         loss_metric.n_samples += 1
 
         loss.backward()
+
+        clipping_value = 1e-5
+        torch.nn.utils.clip_grad_value_(model.parameters(), clipping_value)
+
         optimizer.step()
         desc = f'Training Loss: {loss.item():.2f}'
         progress_bar.set_description(desc)
+        if it >= batches_per_epoch:
+            break
 
     return loss_metric.average_loss
 
@@ -89,6 +97,6 @@ def process(
     pc_loss = F.cross_entropy(predicted_positions.view(-1, 256), target_pos.argmax(2).view(-1))
     hd_loss = F.cross_entropy(predicted_hd.view(-1, 12), target_hd.argmax(2).view(-1))
 
-    loss = (pc_loss + hd_loss) / 2
+    loss = pc_loss + hd_loss + model.regularization()
 
     return loss
