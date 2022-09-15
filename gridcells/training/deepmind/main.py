@@ -5,6 +5,7 @@ from tqdm import tqdm
 from glob import glob
 import datetime as dt
 from dataclasses import dataclass
+from PIL import Image
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -113,6 +114,13 @@ def train():
             writer.add_figure("validation/s90_ratemaps", fig, epoch)
 
     save_experiment(model, optimizer, config, run_name)
+    savepath = review_path_integration(model)
+    image = Image.open(savepath)
+    transform = transforms.Compose([
+        transforms.PILToTensor()
+    ])
+    img_tensor = transform(image)
+    writer.add_image("path_integration",img_tensor,0)
 
     return model
 
@@ -184,6 +192,7 @@ def review_path_integration(model_state_path: str):
         )
         savepath = f'tmp/dp-review-{it:02}.png'
         fig.savefig(savepath)
+        return savepath
 
 
 def make_test_batch(path: str, n_samples: int = 5000) -> dict:
