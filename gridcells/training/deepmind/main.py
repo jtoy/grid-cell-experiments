@@ -115,7 +115,7 @@ def train():
             writer.add_figure("validation/s90_ratemaps", fig, epoch)
 
     save_experiment(model, optimizer, config, run_name)
-    savepath = review_path_integration(model)
+    savepath = review_path_integration(model) #fix loading
     image = Image.open(savepath)
     transform = transforms.Compose([
         transforms.PILToTensor()
