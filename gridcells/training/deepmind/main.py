@@ -6,6 +6,7 @@ from glob import glob
 import datetime as dt
 from dataclasses import dataclass
 from PIL import Image
+import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
