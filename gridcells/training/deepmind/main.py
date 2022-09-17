@@ -115,7 +115,7 @@ def train():
             writer.add_figure("validation/s90_ratemaps", fig, epoch)
 
     save_experiment(model, optimizer, config, run_name)
-    savepath = review_path_integration(model) #fix loading
+    savepath = review_path_integration_batch(model,test_batch)
     image = Image.open(savepath)
     transform = transforms.Compose([
         transforms.PILToTensor()
@@ -138,6 +138,46 @@ def save_experiment(
         'model': model.state_dict(),
     }
     torch.save(experiment_state, f'tmp/{run_name}.pt')
+
+
+def review_path_integration_batch(model:nn.Module, batch:dict):
+    # Run tests on cpu
+    device = torch.device("cpu")
+
+    # Draw this many charts
+    n_samples = 10
+
+    model.cpu().eval()
+    ego_vel = batch['ego_vel'].to(device)
+    encoded_pos = batch['encoded_initial_pos'].to(device)
+    encoded_hd = batch['encoded_initial_hd'].to(device)
+    concat_init = torch.cat([encoded_hd, encoded_pos], axis=2).squeeze()
+    # And for drawing charts
+    init_pos = batch['init_pos'].detach().numpy()
+    target_hd = batch['target_hd'].numpy()
+    target_pos = batch['target_pos'].numpy()
+
+    predicted_positions, predicted_hd, bottlenecks = model(concat_init, ego_vel)
+    predicted_positions = predicted_positions.detach().numpy()
+    predicted_hd = predicted_hd.detach().numpy()
+
+    for it in range(n_samples):
+        decoded_hd = hd_encoder.decode(predicted_hd[it])
+        # There's a shape incosistency between deepmind pipeline
+        # and the base pipeline, so I need to add a dimension here to re-use plots
+        decoded_hd = decoded_hd[:, np.newaxis]
+        decoded_position = position_encoder.decode(predicted_positions[it])
+
+        fig = validation_views.compare_model_output(
+            init_pos=init_pos[it],
+            target_place=target_pos[it],
+            model_place=decoded_position,
+            target_head=target_hd[it],
+            model_head=decoded_hd,
+        )
+        savepath = f'tmp/dp-review-{it:02}.png'
+        fig.savefig(savepath)
+        return savepath
 
 
 def review_path_integration(model_state_path: str):
