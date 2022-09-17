@@ -114,14 +114,15 @@ def train():
             )
             writer.add_figure("validation/s90_ratemaps", fig, epoch)
 
+            savepath = review_path_integration_batch(model,test_batch,device)
+            image = Image.open(savepath)
+            transform = transforms.Compose([
+                transforms.PILToTensor()
+            ])
+            img_tensor = transform(image)
+            writer.add_image("path_integration",img_tensor,0)
+
     save_experiment(model, optimizer, config, run_name)
-    savepath = review_path_integration_batch(model,test_batch)
-    image = Image.open(savepath)
-    transform = transforms.Compose([
-        transforms.PILToTensor()
-    ])
-    img_tensor = transform(image)
-    writer.add_image("path_integration",img_tensor,0)
 
     return model
 
@@ -140,14 +141,14 @@ def save_experiment(
     torch.save(experiment_state, f'tmp/{run_name}.pt')
 
 
-def review_path_integration_batch(model:nn.Module, batch:dict):
+def review_path_integration_batch(model:nn.Module, batch:dict,device:str):
     # Run tests on cpu
-    device = torch.device("cpu")
+    #device = torch.device("cpu")
 
     # Draw this many charts
     n_samples = 10
 
-    model.cpu().eval()
+    #model.cpu().eval()
     ego_vel = batch['ego_vel'].to(device)
     encoded_pos = batch['encoded_initial_pos'].to(device)
     encoded_hd = batch['encoded_initial_hd'].to(device)
@@ -158,8 +159,10 @@ def review_path_integration_batch(model:nn.Module, batch:dict):
     target_pos = batch['target_pos'].numpy()
 
     predicted_positions, predicted_hd, bottlenecks = model(concat_init, ego_vel)
-    predicted_positions = predicted_positions.detach().numpy()
-    predicted_hd = predicted_hd.detach().numpy()
+    predicted_positions = predicted_positions.cpu().detach().numpy()
+    predicted_hd = predicted_hd.cpu().detach().numpy()
+    hd_encoder = data_encoder.DeepMindHeadEncoder()
+    position_encoder = data_encoder.DeepMindPlaceEncoder()
 
     for it in range(n_samples):
         decoded_hd = hd_encoder.decode(predicted_hd[it])
