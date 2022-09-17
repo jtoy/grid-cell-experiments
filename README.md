@@ -37,18 +37,32 @@ training loop
 Validation procedures
 Visualization 
 
-next steps:
+# next steps:
+
+* encoding from 16 to 32 - number of points to quantize 2d space (decrease/increase) (e) 
+* turn off dropout (e) 
+* run small grid search across hyperparameters:
+  * hyper parameter numbers (e)
+  * lstm number (e)
+  * different optimizers (m)
+
+* turn off HD cells for prediction (h)
+* try 3D (h)
+
 * get the model to get as close of results to deepmind as possible
   * rmsprop is different: https://github.com/pytorch/pytorch/issues/32545
   * email to deepmind/lukas
   * scoring added to report
   * datasamples, use same way as deepmind , maybe not worth it?
 
-* run small grid search across hyperparameters:
-  * different optimizers
-  * number of pointse to quantize 2d space (decrease/increase)
-* change the data
-  * try 3D 
+* seed control
+
+# papers to review
+
+* minimum requirements for grid cell navigation
+* 3D papers
+* SAC
+
 
 
 # Questions
