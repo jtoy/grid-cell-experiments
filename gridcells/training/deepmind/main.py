@@ -120,7 +120,7 @@ def train():
                 transforms.PILToTensor()
             ])
             img_tensor = transform(image)
-            writer.add_image("path_integration",img_tensor,0)
+            writer.add_image("path_integration",img_tensor,epoch)
 
     save_experiment(model, optimizer, config, run_name)
 
