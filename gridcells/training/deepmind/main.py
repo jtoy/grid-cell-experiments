@@ -116,9 +116,7 @@ def train():
 
             savepath = review_path_integration_batch(model,test_batch,device)
             image = Image.open(savepath)
-            transform = transforms.Compose([
-                transforms.PILToTensor()
-            ])
+            transform = transforms.Compose([ transforms.PILToTensor() ])
             img_tensor = transform(image)
             writer.add_image("path_integration",img_tensor,epoch)
 
