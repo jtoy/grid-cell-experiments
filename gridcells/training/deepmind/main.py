@@ -140,13 +140,8 @@ def save_experiment(
 
 
 def review_path_integration_batch(model:nn.Module, batch:dict,device:str):
-    # Run tests on cpu
-    #device = torch.device("cpu")
-
     # Draw this many charts
     n_samples = 10
-
-    #model.cpu().eval()
     ego_vel = batch['ego_vel'].to(device)
     encoded_pos = batch['encoded_initial_pos'].to(device)
     encoded_hd = batch['encoded_initial_hd'].to(device)
