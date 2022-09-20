@@ -1,8 +1,9 @@
-import torch
-from tqdm import tqdm
-from glob import glob
 import datetime as dt
+from glob import glob
+
+import torch
 import torch.nn as nn
+from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -17,7 +18,7 @@ def train(n_epochs: int = 51):
     run_name = "GC_" + date_time
     writer = SummaryWriter(f"tmp/tensorboard/{run_name}")
 
-    paths = glob('data/torch/*pt')
+    paths = glob("data/torch/*pt")
     model = gridcell_models.WorstModel()
     t_dataset = SelfLocationDataset(paths[:70])
     v_dataset = SelfLocationDataset(paths[70:])
@@ -49,7 +50,7 @@ def train(n_epochs: int = 51):
         writer.add_scalar("training/loss", training_loss, epoch)
         writer.add_scalar("validation/accuracy", validation_loss, epoch)
 
-        epoch_summary = f'Training loss: {training_loss:.2f}, validation loss: {validation_loss:.2f}'
+        epoch_summary = f"Training loss: {training_loss:.2f}, validation loss: {validation_loss:.2f}"
         progress_bar.set_description(epoch_summary)
 
         if epoch % 10 == 0:
@@ -60,21 +61,15 @@ def train(n_epochs: int = 51):
                 epoch=epoch,
             )
 
-    torch.save(model.state_dict(), 'tmp/model.pt')
+    torch.save(model.state_dict(), "tmp/model.pt")
 
 
-def write_validation_plots(
-    model: nn.Module,
-    batch: dict,
-    writer: SummaryWriter,
-    epoch: int,
-    n_samples: int = 5
-):
-    init_pos = batch['init_pos']
-    init_hd = batch['init_hd']
-    ego_vel = batch['ego_vel']
-    target_place = batch['target_pos']
-    target_head = batch['target_hd']
+def write_validation_plots(model: nn.Module, batch: dict, writer: SummaryWriter, epoch: int, n_samples: int = 5):
+    init_pos = batch["init_pos"]
+    init_hd = batch["init_hd"]
+    ego_vel = batch["ego_vel"]
+    target_place = batch["target_pos"]
+    target_head = batch["target_hd"]
     place_cells, head_cells = model(init_pos, init_hd, ego_vel)
     for idx in range(n_samples):
         fig = validation_views.compare_model_output(

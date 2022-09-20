@@ -1,6 +1,7 @@
+from dataclasses import asdict, dataclass
+
 import torch
 import numpy as np
-from dataclasses import dataclass, asdict
 
 
 @dataclass
@@ -14,11 +15,11 @@ class Trajectory:
 
     def asdict(self) -> dict:
         out = {
-            'init_pos': self.init_pos,
-            'init_hd': self.init_hd,
-            'ego_vel': self.ego_vel,
-            'target_hd': self.target_hd,
-            'target_pos': self.target_pos,
+            "init_pos": self.init_pos,
+            "init_hd": self.init_hd,
+            "ego_vel": self.ego_vel,
+            "target_hd": self.target_hd,
+            "target_pos": self.target_pos,
         }
         return out
 
@@ -26,12 +27,12 @@ class Trajectory:
         return asdict(self)
 
     def __rich_repr__(self):
-        yield 'init_pos', self.init_pos
-        yield 'init_pos', self.init_pos.shape
-        yield 'init_hd', self.init_hd.shape
-        yield 'ego_vel', self.ego_vel.shape
-        yield 'target_hd', self.target_hd.shape
-        yield 'target_pos', self.target_pos.shape
+        yield "init_pos", self.init_pos
+        yield "init_pos", self.init_pos.shape
+        yield "init_hd", self.init_hd.shape
+        yield "ego_vel", self.ego_vel.shape
+        yield "target_hd", self.target_hd.shape
+        yield "target_pos", self.target_pos.shape
 
     def recreate_trajectory(self) -> np.array:
         """
@@ -83,12 +84,12 @@ class TrajectoryBatch:
         return self.init_pos.shape[0]
 
     def __rich_repr__(self):
-        yield 'init_pos', self.init_pos.shape
-        yield 'init_hd', self.init_hd.shape
-        yield 'ego_vel', self.ego_vel.shape
-        yield 'target_hd', self.target_hd.shape
-        yield 'target_pos', self.target_pos.shape
-        yield 'batch_size', self.size
+        yield "init_pos", self.init_pos.shape
+        yield "init_hd", self.init_hd.shape
+        yield "ego_vel", self.ego_vel.shape
+        yield "target_hd", self.target_hd.shape
+        yield "target_pos", self.target_pos.shape
+        yield "batch_size", self.size
 
     def __getitem__(self, idx: int) -> Trajectory:
         trajectory = Trajectory(
@@ -117,20 +118,20 @@ class EncodedTrajectory:
 
     def asdict(self) -> dict:
         out = {
-            'init_pos': self.init_pos,
-            'init_hd': self.init_hd,
-            'ego_vel': self.ego_vel,
-            'target_hd': self.target_hd,
-            'target_pos': self.target_pos,
-            'encoded_initial_pos': self.encoded_initial_pos,
-            'encoded_initial_hd': self.encoded_initial_hd,
-            'encoded_target_pos': self.encoded_target_pos,
-            'encoded_target_hd': self.encoded_target_hd,
+            "init_pos": self.init_pos,
+            "init_hd": self.init_hd,
+            "ego_vel": self.ego_vel,
+            "target_hd": self.target_hd,
+            "target_pos": self.target_pos,
+            "encoded_initial_pos": self.encoded_initial_pos,
+            "encoded_initial_hd": self.encoded_initial_hd,
+            "encoded_target_pos": self.encoded_target_pos,
+            "encoded_target_hd": self.encoded_target_hd,
         }
         return out
 
     def __rich_repr__(self):
-        yield 'encoded_trajectory', self.init_pos.shape
+        yield "encoded_trajectory", self.init_pos.shape
 
 
 @dataclass
@@ -148,13 +149,13 @@ class EncodedTrajectoryBatch:
     target_pos: torch.Tensor
 
     def __rich_repr__(self):
-        yield 'init_pos', self.init_pos.shape
-        yield 'init_hd', self.init_hd.shape
-        yield 'encoded_target_hd', self.encoded_target_hd.shape
-        yield 'encoded_target_pos', self.encoded_target_pos.shape
-        yield 'ego_vel', self.ego_vel.shape
-        yield 'target_hd', self.target_hd.shape
-        yield 'target_pos', self.target_pos.shape
+        yield "init_pos", self.init_pos.shape
+        yield "init_hd", self.init_hd.shape
+        yield "encoded_target_hd", self.encoded_target_hd.shape
+        yield "encoded_target_pos", self.encoded_target_pos.shape
+        yield "ego_vel", self.ego_vel.shape
+        yield "target_hd", self.target_hd.shape
+        yield "target_pos", self.target_pos.shape
 
     def __getitem__(self, idx: int) -> Trajectory:
         trajectory = EncodedTrajectory(
@@ -176,10 +177,10 @@ class EncodedTrajectoryBatch:
 
     def asdict(self) -> dict:
         out = {
-            'init_pos': self.init_pos,
-            'init_hd': self.init_hd,
-            'ego_vel': self.ego_vel,
-            'target_hd': self.target_hd,
-            'target_pos': self.target_pos,
+            "init_pos": self.init_pos,
+            "init_hd": self.init_hd,
+            "ego_vel": self.ego_vel,
+            "target_hd": self.target_hd,
+            "target_pos": self.target_pos,
         }
         return out

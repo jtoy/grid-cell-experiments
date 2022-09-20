@@ -1,10 +1,9 @@
 from typing import Callable
+from dataclasses import dataclass
 
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-
-from dataclasses import dataclass
 
 
 @dataclass
@@ -31,13 +30,13 @@ def train_epoch(
         optimizer.zero_grad()
 
         # Model inputs
-        init_pos = batch['init_pos']
-        init_hd = batch['init_hd']
-        ego_vel = batch['ego_vel']
+        init_pos = batch["init_pos"]
+        init_hd = batch["init_hd"]
+        ego_vel = batch["ego_vel"]
 
         # Model outputs
-        target_place = batch['target_pos']
-        target_head = batch['target_hd']
+        target_place = batch["target_pos"]
+        target_head = batch["target_hd"]
 
         place_cells, head_cells = model(init_pos, init_hd, ego_vel)
 
@@ -67,13 +66,13 @@ def validation_epoch(
 
     for batch in data_loader:
         # Model inputs
-        init_pos = batch['init_pos']
-        init_hd = batch['init_hd']
-        ego_vel = batch['ego_vel']
+        init_pos = batch["init_pos"]
+        init_hd = batch["init_hd"]
+        ego_vel = batch["ego_vel"]
 
         # Model outputs
-        target_place = batch['target_pos']
-        target_head = batch['target_hd']
+        target_place = batch["target_pos"]
+        target_head = batch["target_hd"]
 
         place_cells, head_cells = model(init_pos, init_hd, ego_vel)
 

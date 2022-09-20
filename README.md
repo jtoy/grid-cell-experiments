@@ -53,12 +53,12 @@ Potential modifications:
 Design doc:
 training loop
 Validation procedures
-Visualization 
+Visualization
 
 # next steps:
 
-* encoding from 16 to 32 - number of points to quantize 2d space (decrease/increase) (e) 
-* turn off dropout (e) 
+* encoding from 16 to 32 - number of points to quantize 2d space (decrease/increase) (e)
+* turn off dropout (e)
 * run small grid search across hyperparameters:
   * hyper parameter numbers (e)
   * lstm number (e)
@@ -92,5 +92,3 @@ Visualization
 * does a regular lstm/rnn trained on simliar dataset get a similar loss
 * testing out 3D, how would we generate the training data
 * what is the loss representing
-
-

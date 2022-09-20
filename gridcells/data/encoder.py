@@ -1,7 +1,7 @@
 import numpy as np
-from scipy.special import logsumexp, softmax
-from gridcells.data.structures import Trajectory
+from scipy.special import softmax, logsumexp
 
+from gridcells.data.structures import Trajectory
 
 SEED = 8341
 
@@ -18,10 +18,10 @@ class DeepMindishEncoder:
         encoded_target_hd = self.head_direction_encoder.encode(trajectory.target_hd)
 
         record = {
-            'encoded_initial_pos': encoded_initial_pos,
-            'encoded_initial_hd': encoded_initial_hd,
-            'encoded_target_pos': encoded_target_pos,
-            'encoded_target_hd': encoded_target_hd,
+            "encoded_initial_pos": encoded_initial_pos,
+            "encoded_initial_hd": encoded_initial_hd,
+            "encoded_target_pos": encoded_target_pos,
+            "encoded_target_hd": encoded_target_hd,
         }
         return record
 
@@ -60,11 +60,11 @@ class DeepMindPlaceEncoder:
 
         rs = np.random.RandomState(SEED)
         self.means = rs.uniform(pos_min, pos_max, size=(n_cells, 2))
-        self.variances = np.ones_like(self.means) * stdev**2
+        self.variances = np.ones_like(self.means) * stdev ** 2
 
     def encode(self, trajs: np.array):
         diff = trajs[:, np.newaxis, :] - self.means[np.newaxis, ...]
-        normalized_diff = (diff**2) / self.variances
+        normalized_diff = (diff ** 2) / self.variances
 
         logp = -0.5 * np.sum(normalized_diff, axis=-1)
 
