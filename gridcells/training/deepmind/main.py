@@ -113,12 +113,7 @@ def train():
                 scores=[r.s90 for r in ratemaps],
             )
             writer.add_figure("validation/s90_ratemaps", fig, epoch)
-
-            savepath = review_path_integration_batch(model,test_batch,device)
-            image = Image.open(savepath)
-            transform = transforms.Compose([ transforms.PILToTensor() ])
-            img_tensor = transform(image)
-            writer.add_image("path_integration",img_tensor,epoch)
+            review_path_integration_batch(model,test_batch,device,writer,epoch)
 
     save_experiment(model, optimizer, config, run_name)
 
@@ -139,7 +134,7 @@ def save_experiment(
     torch.save(experiment_state, f'tmp/{run_name}.pt')
 
 
-def review_path_integration_batch(model:nn.Module, batch:dict,device:str):
+def review_path_integration_batch(model:nn.Module, batch:dict,device:str,writer,epoch:int):
     # Draw this many charts
     n_samples = 10
     ego_vel = batch['ego_vel'].to(device)
@@ -173,7 +168,10 @@ def review_path_integration_batch(model:nn.Module, batch:dict,device:str):
         )
         savepath = f'tmp/dp-review-{it:02}.png'
         fig.savefig(savepath)
-        return savepath
+        image = Image.open(savepath)
+        transform = transforms.Compose([ transforms.PILToTensor() ])
+        img_tensor = transform(image)
+        writer.add_image("path_integration",img_tensor,epoch)
 
 
 def review_path_integration(model_state_path: str):
