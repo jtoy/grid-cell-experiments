@@ -16,6 +16,7 @@ from gridcells.models import main as gridcell_models
 from gridcells.data.dataset import CachedEncodedDataset
 from gridcells.validation import views as validation_views
 from gridcells.training.deepmind import epochs as training_epochs
+from gridcells.training.base.rmsprop_tf import RMSprop as RMSprop_tf
 
 
 @dataclass
@@ -58,20 +59,22 @@ def train():
 
     model = gridcell_models.DeepMindModel(config.weight_decay)
     model = model.to(device)
+
     # Default value in tensorflow is different than default value in torch
     # it's also called *rho* rather than *alpha* (I think)
     alpha = 0.9
     momentum = 0.9
     learning_rate = 1e-4
     eps = 1e-10
-    optimizer = torch.optim.RMSprop(
+    optimizer = RMSprop_tf(
         params=model.parameters(),
         lr=learning_rate,
-        alpha=alpha,
         momentum=momentum,
+        alpha=alpha,
         eps=eps,
     )
     # optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.98), eps=1e-9)
+
 
     progress_bar = tqdm(range(config.n_epochs), total=config.n_epochs)
     for epoch in progress_bar:

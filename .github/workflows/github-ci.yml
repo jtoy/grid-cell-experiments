@@ -1,0 +1,24 @@
+name: code quality pipeline
+
+on:
+  push:
+  # Allows to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Flake8
+    runs-on: ubuntu-latest
+    steps:
+      # check out repository under $GITHUB_WORKSPACE, so your workflow can access it
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install Flake
+        run: |
+          pip install --upgrade --upgrade-strategy eager flake8
+      - name: Run Flake
+        run: |
+          flake8 --max-line-length=180 --extend-ignore=E203 --per-file-ignores=.github/scripts/bump_version.py:E402
