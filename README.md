@@ -20,6 +20,24 @@ Use tensorboard to monitor progrss:
 tensorboard --logdir=tmp/tensorboard --host=0.0.0.0
 ```
 
+### Development
+
+Pre-commit hooks with forced pytahon formatting ([black](https://github.com/psf/black), [flake8](https://flake8.pycqa.org/en/latest/), and [isort](https://pycqa.github.io/isort/)):
+
+```sh
+pip install pre-commit
+pre-commit install
+```
+
+Whenever you execute `git commit` the files altered / added within the commit will be checked and corrected. `black` and `isort` can modify files locally - if that happens you have to `git add` them again.
+You might also be prompted to introduce some fixes manually.
+
+To run the hooks against all files without running `git commit`:
+
+```sh
+pre-commit run --all-files
+```
+
 ---
 
 Goal: Get a deeper understanding of using deepmind's grid cell paper. Can we reproduce the experiments and graphs? If we get a deep understanding of the system, we may be able to produce our own experiments.
