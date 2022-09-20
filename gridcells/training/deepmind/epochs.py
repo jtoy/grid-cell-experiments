@@ -1,10 +1,10 @@
+from dataclasses import dataclass
+
 import torch
-from tqdm import tqdm
 import torch.nn as nn
+from tqdm import tqdm
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
-
-from dataclasses import dataclass
 
 
 @dataclass
@@ -45,7 +45,7 @@ def train_epoch(
         torch.nn.utils.clip_grad_value_(model.parameters(), clipping_value)
 
         optimizer.step()
-        desc = f'Training Loss: {loss.item():.2f}'
+        desc = f"Training Loss: {loss.item():.2f}"
         progress_bar.set_description(desc)
         if it >= batches_per_epoch:
             break
@@ -70,7 +70,7 @@ def validation_epoch(
         loss_metric.total_loss += loss.item()
         loss_metric.n_samples += 1
 
-        desc = f'Validation Loss: {loss.item():.2f}'
+        desc = f"Validation Loss: {loss.item():.2f}"
         progress_bar.set_description(desc)
 
     return loss_metric.average_loss
@@ -82,14 +82,14 @@ def process(
     device: torch.device,
 ) -> torch.tensor:
     # Model inputs
-    ego_vel = batch['ego_vel'].to(device, dtype=torch.float32)
-    encoded_pos = batch['encoded_initial_pos'].to(device, dtype=torch.float32)
-    encoded_hd = batch['encoded_initial_hd'].to(device, dtype=torch.float32)
+    ego_vel = batch["ego_vel"].to(device, dtype=torch.float32)
+    encoded_pos = batch["encoded_initial_pos"].to(device, dtype=torch.float32)
+    encoded_hd = batch["encoded_initial_hd"].to(device, dtype=torch.float32)
     concat_init = torch.cat([encoded_hd, encoded_pos], axis=2).squeeze()
 
     # Model outputs
-    target_pos = batch['encoded_target_pos'].to(device, dtype=torch.float32)
-    target_hd = batch['encoded_target_hd'].to(device, dtype=torch.float32)
+    target_pos = batch["encoded_target_pos"].to(device, dtype=torch.float32)
+    target_hd = batch["encoded_target_hd"].to(device, dtype=torch.float32)
 
     predicted_positions, predicted_hd, bottlenecks = model(concat_init, ego_vel)
 

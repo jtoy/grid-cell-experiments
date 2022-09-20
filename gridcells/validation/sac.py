@@ -1,8 +1,8 @@
 import math
+from dataclasses import dataclass
+
 import scipy
 import numpy as np
-
-from dataclasses import dataclass
 
 
 def calculate_ratemap(xs: np.array, ys: np.array, activations: np.array):
@@ -12,7 +12,7 @@ def calculate_ratemap(xs: np.array, ys: np.array, activations: np.array):
         ys,
         activations,
         bins=20,
-        statistic='mean',
+        statistic="mean",
         range=coord_range,
     )[0]
     return ratemap
@@ -24,7 +24,7 @@ def calculate_sac(seq1):
 
     def filter2(b, x):
         stencil = np.rot90(b, 2)
-        return scipy.signal.convolve2d(x, stencil, mode='full')
+        return scipy.signal.convolve2d(x, stencil, mode="full")
 
     seq1 = np.nan_to_num(seq1)
     seq2 = np.nan_to_num(seq2)
@@ -48,17 +48,9 @@ def calculate_sac(seq1):
     n_bins = filter2(ones_seq1, ones_seq2)
     n_bins_sq = np.square(n_bins)
 
-    std_seq1 = np.power(
-        np.subtract(
-            np.divide(sum_seq1_sq, n_bins),
-            (np.divide(np.square(sum_seq1), n_bins_sq))), 0.5)
-    std_seq2 = np.power(
-        np.subtract(
-            np.divide(sum_seq2_sq, n_bins),
-            (np.divide(np.square(sum_seq2), n_bins_sq))), 0.5)
-    covar = np.subtract(
-        np.divide(seq1_x_seq2, n_bins),
-        np.divide(np.multiply(sum_seq1, sum_seq2), n_bins_sq))
+    std_seq1 = np.power(np.subtract(np.divide(sum_seq1_sq, n_bins), (np.divide(np.square(sum_seq1), n_bins_sq))), 0.5)
+    std_seq2 = np.power(np.subtract(np.divide(sum_seq2_sq, n_bins), (np.divide(np.square(sum_seq2), n_bins_sq))), 0.5)
+    covar = np.subtract(np.divide(seq1_x_seq2, n_bins), np.divide(np.multiply(sum_seq1, sum_seq2), n_bins_sq))
     x_coef = np.divide(covar, np.multiply(std_seq1, std_seq2))
     x_coef = np.real(x_coef)
     x_coef = np.nan_to_num(x_coef)
@@ -79,7 +71,7 @@ def circle_mask(size, radius, in_val=1.0, out_val=0.0):
     y = np.linspace(-sz[0], sz[1], size[1])
     y = np.expand_dims(y, 1)
     y = y.repeat(size[1], 1)
-    z = np.sqrt(x**2 + y**2)
+    z = np.sqrt(x ** 2 + y ** 2)
     z = np.less_equal(z, radius)
     vfunc = np.vectorize(lambda b: b and in_val or out_val)
     return vfunc(z)
@@ -109,15 +101,10 @@ class GridScorer:
         ends = np.linspace(0.4, 1.0, num=10)
         mask_parameters = zip(starts, ends.tolist())
 
-        self.ring_masks = [
-            self._get_ring_mask(mask_min, mask_max)
-            for mask_min, mask_max in mask_parameters
-        ]
+        self.ring_masks = [self._get_ring_mask(mask_min, mask_max) for mask_min, mask_max in mask_parameters]
 
     def _get_ring_mask(self, mask_min, mask_max):
-        mask = circle_mask(self.n_points, mask_max * self.nbins) * (
-            1 - circle_mask(self.n_points, mask_min * self.nbins)
-        )
+        mask = circle_mask(self.n_points, mask_max * self.nbins) * (1 - circle_mask(self.n_points, mask_min * self.nbins))
         return mask
 
     def get_sac_angle_correlations(self, sac: np.array, mask: np.array) -> dict:
@@ -130,7 +117,7 @@ class GridScorer:
 
         # Center the sac values inside the ring
         masked_sac_centered = (masked_sac - masked_sac_mean) * mask
-        variance = np.sum(masked_sac_centered**2) / ring_area + 1e-5
+        variance = np.sum(masked_sac_centered ** 2) / ring_area + 1e-5
         corrs = dict()
 
         # for angle, rotated_sac in zip(self._corr_angles, rotated_sacs):
@@ -156,13 +143,13 @@ class GridScorer:
             s60 = self.grid_score_60(masked_correlations)
             s90 = self.grid_score_90(masked_correlations)
             score = {
-                's60': s60,
-                's90': s90,
+                "s60": s60,
+                "s90": s90,
             }
             scores.append(score)
 
-        s60 = max([s['s60'] for s in scores])
-        s90 = max([s['s90'] for s in scores])
+        s60 = max([s["s60"] for s in scores])
+        s90 = max([s["s90"] for s in scores])
         rated_map = Ratemap(
             ratemap=ratemap,
             s60=s60,

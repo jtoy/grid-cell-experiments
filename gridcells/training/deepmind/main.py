@@ -1,11 +1,14 @@
+import datetime as dt
+from glob import glob
+from dataclasses import dataclass
+
 import torch
 import numpy as np
 import torch.nn as nn
+from PIL import Image
 from tqdm import tqdm
-from glob import glob
-import datetime as dt
-from dataclasses import dataclass
 from torch.utils.data import DataLoader
+import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
 
 from gridcells.validation import sac as SAC
@@ -30,10 +33,13 @@ def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     date_time = dt.datetime.now().strftime("%m%d_%H%M")
-    run_name = "DM_" + date_time
+    if device.type == "cuda":
+        run_name = "GPU_" + str(torch.cuda.current_device()) + "_DM_" + date_time
+    else:
+        run_name = "CPU_DM_" + date_time
     writer = SummaryWriter(f"tmp/tensorboard/{run_name}")
 
-    paths = glob('data/encoded_pickles/*pickle')
+    paths = glob("data/encoded_pickles/*pickle")
 
     t_dataset = CachedEncodedDataset(paths[:5])
     v_dataset = CachedEncodedDataset(paths[30:35])
@@ -73,7 +79,6 @@ def train():
     )
     # optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.98), eps=1e-9)
 
-
     progress_bar = tqdm(range(config.n_epochs), total=config.n_epochs)
     for epoch in progress_bar:
         training_loss = training_epochs.train_epoch(
@@ -92,7 +97,7 @@ def train():
         writer.add_scalar("training/loss", training_loss, epoch)
         writer.add_scalar("validation/accuracy", validation_loss, epoch)
 
-        epoch_summary = f'Training: {training_loss:.2f}, validation: {validation_loss:.2f}'
+        epoch_summary = f"Training: {training_loss:.2f}, validation: {validation_loss:.2f}"
         progress_bar.set_description(epoch_summary)
 
         # Detailed validation
@@ -114,6 +119,7 @@ def train():
                 scores=[r.s90 for r in ratemaps],
             )
             writer.add_figure("validation/s90_ratemaps", fig, epoch)
+            review_path_integration_batch(model, test_batch, device, writer, epoch)
 
     save_experiment(model, optimizer, config, run_name)
 
@@ -127,11 +133,51 @@ def save_experiment(
     run_name: str,
 ):
     experiment_state = {
-        'config': config,
-        'optimizer': optimizer.state_dict(),
-        'model': model.state_dict(),
+        "config": config,
+        "optimizer": optimizer.state_dict(),
+        "model": model.state_dict(),
     }
-    torch.save(experiment_state, f'tmp/{run_name}.pt')
+    torch.save(experiment_state, f"tmp/{run_name}.pt")
+
+
+def review_path_integration_batch(model: nn.Module, batch: dict, device: str, writer, epoch: int):
+    # Draw this many charts
+    n_samples = 10
+    ego_vel = batch["ego_vel"].to(device)
+    encoded_pos = batch["encoded_initial_pos"].to(device)
+    encoded_hd = batch["encoded_initial_hd"].to(device)
+    concat_init = torch.cat([encoded_hd, encoded_pos], axis=2).squeeze()
+    # And for drawing charts
+    init_pos = batch["init_pos"].detach().numpy()
+    target_hd = batch["target_hd"].numpy()
+    target_pos = batch["target_pos"].numpy()
+
+    predicted_positions, predicted_hd, bottlenecks = model(concat_init, ego_vel)
+    predicted_positions = predicted_positions.cpu().detach().numpy()
+    predicted_hd = predicted_hd.cpu().detach().numpy()
+    hd_encoder = data_encoder.DeepMindHeadEncoder()
+    position_encoder = data_encoder.DeepMindPlaceEncoder()
+
+    for it in range(n_samples):
+        decoded_hd = hd_encoder.decode(predicted_hd[it])
+        # There's a shape incosistency between deepmind pipeline
+        # and the base pipeline, so I need to add a dimension here to re-use plots
+        decoded_hd = decoded_hd[:, np.newaxis]
+        decoded_position = position_encoder.decode(predicted_positions[it])
+
+        fig = validation_views.compare_model_output(
+            init_pos=init_pos[it],
+            target_place=target_pos[it],
+            model_place=decoded_position,
+            target_head=target_hd[it],
+            model_head=decoded_hd,
+        )
+        savepath = f"tmp/dp-review-{it:02}.png"
+        fig.savefig(savepath)
+        image = Image.open(savepath)
+        transform = transforms.Compose([transforms.PILToTensor()])
+        img_tensor = transform(image)
+        writer.add_image(f"path_integration_{it}", img_tensor, epoch)
 
 
 def review_path_integration(model_state_path: str):
@@ -148,7 +194,7 @@ def review_path_integration(model_state_path: str):
 
     # Make a dataset from a single path that was
     # not used during trainig and validation
-    paths = glob('data/encoded_pickles/*pickle')
+    paths = glob("data/encoded_pickles/*pickle")
     path = paths[-2]
     dataset = CachedEncodedDataset([path])
     loader = DataLoader(dataset, batch_size=n_samples, shuffle=True)
@@ -158,14 +204,14 @@ def review_path_integration(model_state_path: str):
 
     # Unpack data for model input
     batch = next(iter(loader))
-    ego_vel = batch['ego_vel'].to(device)
-    encoded_pos = batch['encoded_initial_pos'].to(device)
-    encoded_hd = batch['encoded_initial_hd'].to(device)
+    ego_vel = batch["ego_vel"].to(device)
+    encoded_pos = batch["encoded_initial_pos"].to(device)
+    encoded_hd = batch["encoded_initial_hd"].to(device)
     concat_init = torch.cat([encoded_hd, encoded_pos], axis=2).squeeze()
     # And for drawing charts
-    init_pos = batch['init_pos'].detach().numpy()
-    target_hd = batch['target_hd'].numpy()
-    target_pos = batch['target_pos'].numpy()
+    init_pos = batch["init_pos"].detach().numpy()
+    target_hd = batch["target_hd"].numpy()
+    target_pos = batch["target_pos"].numpy()
 
     predicted_positions, predicted_hd, bottlenecks = model(concat_init, ego_vel)
     predicted_positions = predicted_positions.detach().numpy()
@@ -185,8 +231,9 @@ def review_path_integration(model_state_path: str):
             target_head=target_hd[it],
             model_head=decoded_hd,
         )
-        savepath = f'tmp/dp-review-{it:02}.png'
+        savepath = f"tmp/dp-review-{it:02}.png"
         fig.savefig(savepath)
+        return savepath
 
 
 def make_test_batch(path: str, n_samples: int = 5000) -> dict:
@@ -199,11 +246,11 @@ def make_test_batch(path: str, n_samples: int = 5000) -> dict:
 
 
 def make_scored_ratemaps(model: nn.Module, device: torch.device, batch: dict) -> list[SAC.Ratemap]:
-    ego_vel = batch['ego_vel'].to(device)
-    encoded_pos = batch['encoded_initial_pos'].to(device)
-    encoded_hd = batch['encoded_initial_hd'].to(device)
+    ego_vel = batch["ego_vel"].to(device)
+    encoded_pos = batch["encoded_initial_pos"].to(device)
+    encoded_hd = batch["encoded_initial_hd"].to(device)
     concat_init = torch.cat([encoded_hd, encoded_pos], axis=2).squeeze()
-    target_pos = batch['target_pos'].numpy()
+    target_pos = batch["target_pos"].numpy()
 
     model.eval()
     predicted_positions, predicted_hd, bottlenecks = model(concat_init, ego_vel)
@@ -222,11 +269,11 @@ def make_scored_ratemaps(model: nn.Module, device: torch.device, batch: dict) ->
 
 
 def draw_ratemaps(model: nn.Module, device: torch.device, batch: dict):
-    ego_vel = batch['ego_vel'].to(device)
-    encoded_pos = batch['encoded_initial_pos'].to(device)
-    encoded_hd = batch['encoded_initial_hd'].to(device)
+    ego_vel = batch["ego_vel"].to(device)
+    encoded_pos = batch["encoded_initial_pos"].to(device)
+    encoded_hd = batch["encoded_initial_hd"].to(device)
     concat_init = torch.cat([encoded_hd, encoded_pos], axis=2).squeeze()
-    target_pos = batch['target_pos'].numpy()
+    target_pos = batch["target_pos"].numpy()
 
     model.eval()
     predicted_positions, predicted_hd, bottlenecks = model(concat_init, ego_vel)
@@ -259,7 +306,7 @@ def review_ratemaps(model_state_path: str):
 
     # Make a dataset from a single path that was
     # not used during trainig and validation
-    paths = glob('data/encoded_pickles/*pickle')
+    paths = glob("data/encoded_pickles/*pickle")
     path = paths[-1]
     batch = make_test_batch(path)
 

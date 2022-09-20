@@ -1,6 +1,7 @@
 import pickle
-import numpy as np
 from dataclasses import dataclass
+
+import numpy as np
 from matplotlib import pyplot as plt
 
 from gridcells.data.encoder import DeepMindPlaceEncoder
@@ -33,25 +34,25 @@ class TensorflowOutput:
 
 def load_data(path: str) -> TensorflowOutput:
     """
-        This has to be synchronized with the original deepmind repository
+    This has to be synchronized with the original deepmind repository
 
-        Here's the piece of code I used to extract data from
-        tensorflow objects into dicts:
+    Here's the piece of code I used to extract data from
+    tensorflow objects into dicts:
 
-        res = sess.run(
-            {
-                "encoded_target_pos": ensembles_targets[0],
-                "encoded_target_hd": ensembles_targets[1],
-                "logits_pos": ensembles_logits[0],
-                "logits_hd": ensembles_logits[1],
-                "target_pos": target_pos,
-            }
-        )
+    res = sess.run(
+        {
+            "encoded_target_pos": ensembles_targets[0],
+            "encoded_target_hd": ensembles_targets[1],
+            "logits_pos": ensembles_logits[0],
+            "logits_hd": ensembles_logits[1],
+            "target_pos": target_pos,
+        }
+    )
 
-        This is the structure that is loaded here into the TensorflowOutput.
+    This is the structure that is loaded here into the TensorflowOutput.
     """
     with open(path, "rb") as f:
-        res = pickle.load(f, encoding='latin1')
+        res = pickle.load(f, encoding="latin1")
 
     data = TensorflowOutput(**res)
 
@@ -70,8 +71,8 @@ def position_mse(data: TensorflowOutput):
     # Error of predicted encoded positions
     prediction_mse = np.mean((true_xy - predicted_xy) ** 2)
 
-    print('Quantization MSE:', quantization_mse)
-    print('Prediction MSE:', prediction_mse)
+    print("Quantization MSE:", quantization_mse)
+    print("Prediction MSE:", prediction_mse)
 
 
 def position_outputs_plot(
@@ -86,9 +87,9 @@ def position_outputs_plot(
     predicted_xy = position_encoder.decode(logits_pos)
     true_xy = position_encoder.decode(encoded_target_pos)
 
-    ax.plot(predicted_xy[:, 0], predicted_xy[:, 1], label='predicted')
-    ax.plot(true_xy[:, 0], true_xy[:, 1], label='encoded trajectory')
-    ax.plot(target_pos[:, 0], target_pos[:, 1], label='true trajectory')
+    ax.plot(predicted_xy[:, 0], predicted_xy[:, 1], label="predicted")
+    ax.plot(true_xy[:, 0], true_xy[:, 1], label="encoded trajectory")
+    ax.plot(target_pos[:, 0], target_pos[:, 1], label="true trajectory")
 
     ax.set_xlim(-1.1, 1.1)
     ax.set_ylim(-1.1, 1.1)

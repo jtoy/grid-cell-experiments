@@ -1,5 +1,7 @@
-import torch
 from pathlib import Path
+
+import torch
+
 from gridcells.data.structures import TrajectoryBatch
 
 
