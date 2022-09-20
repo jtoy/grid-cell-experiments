@@ -177,7 +177,7 @@ def review_path_integration_batch(model: nn.Module, batch: dict, device: str, wr
         image = Image.open(savepath)
         transform = transforms.Compose([transforms.PILToTensor()])
         img_tensor = transform(image)
-        writer.add_image("path_integration_{it}", img_tensor, epoch)
+        writer.add_image(f"path_integration_{it}", img_tensor, epoch)
 
 
 def review_path_integration(model_state_path: str):
