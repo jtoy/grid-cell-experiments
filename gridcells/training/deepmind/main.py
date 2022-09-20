@@ -33,7 +33,10 @@ def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     date_time = dt.datetime.now().strftime("%m%d_%H%M")
-    run_name = "DM_" + date_time
+    if device.type == "cuda":
+        run_name = "GPU_" + str(torch.cuda.current_device()) + "_DM_" + date_time
+    else:
+        run_name = "CPU_DM_" + date_time
     writer = SummaryWriter(f"tmp/tensorboard/{run_name}")
 
     paths = glob("data/encoded_pickles/*pickle")
@@ -174,7 +177,7 @@ def review_path_integration_batch(model: nn.Module, batch: dict, device: str, wr
         image = Image.open(savepath)
         transform = transforms.Compose([transforms.PILToTensor()])
         img_tensor = transform(image)
-        writer.add_image("path_integration", img_tensor, epoch)
+        writer.add_image("path_integration_{it}", img_tensor, epoch)
 
 
 def review_path_integration(model_state_path: str):
