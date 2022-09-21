@@ -65,7 +65,7 @@ class DeepMindModel(nn.Module):
             hx, cx = self.rnn(lstm_input, (hx, cx))
 
             bottleneck = self.bottleneck_layer(hx)
-            bottleneck = nn.functional.dropout(bottleneck, 0.5)
+            #bottleneck = nn.functional.dropout(bottleneck, 0.5)
             bottlenecks.append(bottleneck)
 
             predicted_position = self.pc_logits(bottleneck)
