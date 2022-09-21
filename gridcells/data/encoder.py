@@ -7,7 +7,7 @@ SEED = 8341
 
 
 class DeepMindishEncoder:
-    def __init__(self, n_place_cells: int = 256, n_head_cells: int = 12):
+    def __init__(self, n_place_cells: int = 1032, n_head_cells: int = 12):
         self.place_encoder = DeepMindPlaceEncoder(n_cells=n_place_cells)
         self.head_direction_encoder = DeepMindHeadEncoder(n_cells=n_head_cells)
 
