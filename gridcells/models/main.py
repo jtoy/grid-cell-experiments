@@ -39,8 +39,8 @@ class DeepMindModel(nn.Module):
 
         self.weight_decay = weight_decay
 
-        self.l1 = nn.Linear(268, 128)
-        self.l2 = nn.Linear(268, 128)
+        self.l1 = nn.Linear(1044, 128)
+        self.l2 = nn.Linear(1044, 128)
         self.rnn = nn.LSTMCell(input_size=3, hidden_size=128)
         self.bottleneck_layer = nn.Linear(128, 256, bias=False)
         self.pc_logits = nn.Linear(256, 256)
