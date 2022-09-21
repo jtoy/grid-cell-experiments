@@ -39,12 +39,12 @@ class DeepMindModel(nn.Module):
 
         self.weight_decay = weight_decay
 
-        self.l1 = nn.Linear(268, 128)
-        self.l2 = nn.Linear(268, 128)
-        self.rnn = nn.LSTMCell(input_size=3, hidden_size=128)
-        self.bottleneck_layer = nn.Linear(128, 256, bias=False)
-        self.pc_logits = nn.Linear(256, 256)
-        self.hd_logits = nn.Linear(256, 12)
+        self.l1 = nn.Linear(268, 256)
+        self.l2 = nn.Linear(268, 256)
+        self.rnn = nn.LSTMCell(input_size=3, hidden_size=256)
+        self.bottleneck_layer = nn.Linear(256, 512, bias=False)
+        self.pc_logits = nn.Linear(512, 256)
+        self.hd_logits = nn.Linear(512, 12)
 
     @property
     def number_of_parameters(self) -> int:
