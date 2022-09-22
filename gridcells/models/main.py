@@ -34,17 +34,28 @@ class WorstModel(nn.Module):
 
 
 class DeepMindModel(nn.Module):
-    def __init__(self, weight_decay: float = 1e-5):
+    def __init__(
+        self,
+        lstm_hidden_size: int = 128,
+        position_encoding_size: int = 256,
+        head_encoding_size: int = 12,
+        bottleneck_size: int = 256,
+        weight_decay: float = 1e-5,
+    ):
         super().__init__()
 
         self.weight_decay = weight_decay
+        self.head_encoding_size = head_encoding_size
+        self.position_encoding_size = position_encoding_size
 
-        self.l1 = nn.Linear(268, 128)
-        self.l2 = nn.Linear(268, 128)
-        self.rnn = nn.LSTMCell(input_size=3, hidden_size=128)
-        self.bottleneck_layer = nn.Linear(128, 256, bias=False)
-        self.pc_logits = nn.Linear(256, 256)
-        self.hd_logits = nn.Linear(256, 12)
+        inputs_size = position_encoding_size + head_encoding_size
+        self.l1 = nn.Linear(inputs_size, lstm_hidden_size)
+        self.l2 = nn.Linear(inputs_size, lstm_hidden_size)
+
+        self.rnn = nn.LSTMCell(input_size=3, hidden_size=lstm_hidden_size)
+        self.bottleneck_layer = nn.Linear(lstm_hidden_size, bottleneck_size, bias=False)
+        self.pc_logits = nn.Linear(bottleneck_size, position_encoding_size)
+        self.hd_logits = nn.Linear(bottleneck_size, head_encoding_size)
 
     @property
     def number_of_parameters(self) -> int:

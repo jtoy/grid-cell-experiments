@@ -24,8 +24,11 @@ from gridcells.training.base.rmsprop_tf import RMSprop as RMSprop_tf
 class Config:
     batch_size: int = 10
     n_epochs: int = 301
-
+    learning_rate: float = 1e-4
     weight_decay: float = 1e-5
+
+    position_encoding_size: int = 1024
+    encoded_dataset_folder: str = "data/encoded_pickles_1024"
 
 
 def train():
@@ -39,7 +42,7 @@ def train():
         run_name = "CPU_DM_" + date_time
     writer = SummaryWriter(f"tmp/tensorboard/{run_name}")
 
-    paths = glob("data/encoded_pickles/*pickle")
+    paths = glob(f"{config.encoded_dataset_folder}/*pickle")
 
     t_dataset = CachedEncodedDataset(paths[:5])
     v_dataset = CachedEncodedDataset(paths[30:35])
@@ -55,24 +58,26 @@ def train():
     )
     validation_loader = DataLoader(
         v_dataset,
-        batch_size=2500,
+        batch_size=500,
         shuffle=False,
         num_workers=num_workers,
         pin_memory=True,
     )
 
-    model = gridcell_models.DeepMindModel(config.weight_decay)
+    model = gridcell_models.DeepMindModel(
+        weight_decay=config.weight_decay,
+        position_encoding_size=config.position_encoding_size,
+    )
     model = model.to(device)
 
     # Default value in tensorflow is different than default value in torch
     # it's also called *rho* rather than *alpha* (I think)
     alpha = 0.9
     momentum = 0.9
-    learning_rate = 1e-4
     eps = 1e-10
     optimizer = RMSprop_tf(
         params=model.parameters(),
-        lr=learning_rate,
+        lr=config.learning_rate,
         momentum=momentum,
         alpha=alpha,
         eps=eps,
@@ -119,7 +124,14 @@ def train():
                 scores=[r.s90 for r in ratemaps],
             )
             writer.add_figure("validation/s90_ratemaps", fig, epoch)
-            review_path_integration_batch(model, test_batch, device, writer, epoch)
+            review_path_integration_batch(
+                model=model,
+                batch=test_batch,
+                device=device,
+                writer=writer,
+                epoch=epoch,
+                n_place_cells=config.position_encoding_size,
+            )
 
     save_experiment(model, optimizer, config, run_name)
 
@@ -140,7 +152,7 @@ def save_experiment(
     torch.save(experiment_state, f"tmp/{run_name}.pt")
 
 
-def review_path_integration_batch(model: nn.Module, batch: dict, device: str, writer, epoch: int):
+def review_path_integration_batch(model: nn.Module, batch: dict, device: str, writer, epoch: int, n_place_cells: int):
     # Draw this many charts
     n_samples = 10
     ego_vel = batch["ego_vel"].to(device)
@@ -156,7 +168,7 @@ def review_path_integration_batch(model: nn.Module, batch: dict, device: str, wr
     predicted_positions = predicted_positions.cpu().detach().numpy()
     predicted_hd = predicted_hd.cpu().detach().numpy()
     hd_encoder = data_encoder.DeepMindHeadEncoder()
-    position_encoder = data_encoder.DeepMindPlaceEncoder()
+    position_encoder = data_encoder.DeepMindPlaceEncoder(n_place_cells)
 
     for it in range(n_samples):
         decoded_hd = hd_encoder.decode(predicted_hd[it])
@@ -177,7 +189,7 @@ def review_path_integration_batch(model: nn.Module, batch: dict, device: str, wr
         image = Image.open(savepath)
         transform = transforms.Compose([transforms.PILToTensor()])
         img_tensor = transform(image)
-        writer.add_image(f"path_integration_{it}", img_tensor, epoch)
+        writer.add_image(f"path_integration/{it}", img_tensor, epoch)
 
 
 def review_path_integration(model_state_path: str):
