@@ -22,7 +22,7 @@ from gridcells.training.base.rmsprop_tf import RMSprop as RMSprop_tf
 
 @dataclass
 class Config:
-    batch_size: int = 10
+    batch_size: int = 1000
     n_epochs: int = 301
 
     weight_decay: float = 1e-5
