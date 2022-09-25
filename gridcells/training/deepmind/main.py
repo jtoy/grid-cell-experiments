@@ -25,10 +25,12 @@ class Config:
     batch_size: int = 10
     n_epochs: int = 301
     learning_rate: float = 1e-4
+
+    use_dropout: bool = True
     weight_decay: float = 1e-5
 
-    position_encoding_size: int = 1024
-    encoded_dataset_folder: str = "data/encoded_pickles_1024"
+    position_encoding_size: int = 256
+    encoded_dataset_folder: str = "data/encoded_pickles"
 
 
 def train():
@@ -45,7 +47,7 @@ def train():
     paths = glob(f"{config.encoded_dataset_folder}/*pickle")
 
     t_dataset = CachedEncodedDataset(paths[:5])
-    v_dataset = CachedEncodedDataset(paths[30:35])
+    v_dataset = CachedEncodedDataset(paths[30:32])
     test_batch = make_test_batch(paths[44])
 
     num_workers = 8
@@ -66,6 +68,7 @@ def train():
 
     model = gridcell_models.DeepMindModel(
         weight_decay=config.weight_decay,
+        use_dropout=config.use_dropout,
         position_encoding_size=config.position_encoding_size,
     )
     model = model.to(device)
