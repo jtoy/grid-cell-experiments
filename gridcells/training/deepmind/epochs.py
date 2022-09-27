@@ -93,9 +93,10 @@ def process(
 
     predicted_positions, predicted_hd, bottlenecks = model(concat_init, ego_vel)
 
-    # TODO: Remove hardcoded values
-    pc_loss = F.cross_entropy(predicted_positions.view(-1, 256), target_pos.argmax(2).view(-1))
-    hd_loss = F.cross_entropy(predicted_hd.view(-1, 12), target_hd.argmax(2).view(-1))
+    pos_size = model.position_encoding_size
+    pc_loss = F.cross_entropy(predicted_positions.view(-1, pos_size), target_pos.argmax(2).view(-1))
+    hd_size = model.head_encoding_size
+    hd_loss = F.cross_entropy(predicted_hd.view(-1, hd_size), target_hd.argmax(2).view(-1))
 
     loss = pc_loss + hd_loss + model.regularization()
 

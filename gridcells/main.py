@@ -1,3 +1,4 @@
+import os
 import pickle
 from glob import glob
 
@@ -85,12 +86,19 @@ def lstm_pipeline_prototype():
 def cache_encoded_dataset():
     paths = glob("data/torch/*pt")
     batch_size = 10_000
-    encoder = data_encoder.DeepMindishEncoder()
+
+    # TODO This could be a CLI argument
+    n_place_cells = 32 ** 2
+    encoder = data_encoder.DeepMindishEncoder(n_place_cells=n_place_cells)
     dataset = EncodedLocationDataset(paths, encoder)
     loader = DataLoader(dataset, batch_size=batch_size)
 
+    savedir = f"data/encoded_pickles_{n_place_cells}"
+    if not os.path.exists(savedir):
+        os.makedirs(savedir)
+
     for it, batch in tqdm(enumerate(loader), total=len(loader)):
-        savepath = f"data/encoded_pickles/{it:03}.pickle"
+        savepath = f"{savedir}/{it:03}.pickle"
         with open(savepath, "wb") as f:
             pickle.dump(batch, f)
 
