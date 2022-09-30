@@ -32,7 +32,7 @@ class Config:
 
     position_encoding_size: int = 256
     encoded_dataset_folder: str = "data/encoded_pickles"
-    seed: int = 42 #set to None for random
+    seed: int = 42  #set to None for random
 
 def train():
 
