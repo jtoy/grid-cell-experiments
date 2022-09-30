@@ -22,12 +22,13 @@ def train_epoch(
     data_loader: DataLoader,
     optimizer: torch.optim,
     device: torch.device,
+    samples_per_epoch: int,
 ) -> float:
     model.train()
 
     loss_metric = LossMetric()
 
-    batches_per_epoch = 1000
+    batches_per_epoch = samples_per_epoch / data_loader.batch_size
     # progress_bar = tqdm(data_loader, total=len(data_loader), leave=False)
     progress_bar = tqdm(enumerate(data_loader), total=batches_per_epoch, leave=False)
     # for batch in data_loader:
