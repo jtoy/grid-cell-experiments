@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import torch
 import numpy as np
 import torch.nn as nn
+import random
 from PIL import Image
 from tqdm import tqdm
 from torch.utils.data import DataLoader
@@ -31,12 +32,12 @@ class Config:
 
     position_encoding_size: int = 256
     encoded_dataset_folder: str = "data/encoded_pickles"
-    seed: int = 42
+    seed: int = 42 #set to None for random
 
 def train():
 
     config = Config()
-    if config.seed != None:
+    if config.seed is not None:
         torch.manual_seed(config.seed)
         random.seed(config.seed)
         np.random.seed(config.seed)
