@@ -35,6 +35,7 @@ class Config:
     seed: int = 42
     # set seed to None if you want a random seed
 
+
 def train():
     config = Config()
     if config.seed is not None:
