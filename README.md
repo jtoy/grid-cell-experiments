@@ -1,4 +1,21 @@
 # grid-cell-experiments
+The goal of this project is to get a deeper understanding of grid cells with code.
+I've read dozens of papers on grid cells theory and now its time to implement it into computers.
+This project reimplements DeepMind's paper: Vector-based navigation using grid-like representations in artificial agents https://www.deepmind.com/publications/vector-based-navigation-using-grid-like-representations-in-artificial-agents
+This code is written in python3 and pytorch.
+
+
+Of note, we were able to get grid like patterns to appear similar to the original paper, but only when using a batch size of 10, if we increased it, the number of grid like cells went down dramatically.
+We also found that the better the path integration results were not that good and did not seem to be connected with grid cell patterns appearing.
+In the images below you can see some of the results:
+
+
+![path integration](https://github.com/jtoy/grid-cell-experiments/blob/[main]/images/paths.png?raw=true)
+![sac scores](https://github.com/jtoy/grid-cell-experiments/blob/[main]/images/sac_scores.png?raw=true)
+
+
+
+To learn more about grid cells, read [this](https://targetpattern.com/)
 
 ### Running:
 
@@ -50,11 +67,6 @@ Potential modifications:
 * can we use other forms of attention
 
 
-Design doc:
-training loop
-Validation procedures
-Visualization
-
 # next steps:
 
 * encoding from 16 to 32 - number of points to quantize 2d space (decrease/increase) (e)
@@ -69,26 +81,17 @@ Visualization
 
 * get the model to get as close of results to deepmind as possible
   * rmsprop is different: https://github.com/pytorch/pytorch/issues/32545
-  * email to deepmind/lukas
   * scoring added to report
   * datasamples, use same way as deepmind , maybe not worth it?
 
 * seed control
-
-# papers to review
-
-* minimum requirements for grid cell navigation
-* 3D papers
-* SAC
-
 
 
 # Questions
 
 * What is the minimum architecture to make the grid cells appear
 * what would an abstract space with cartesian coordinates look like
-* why does the other paper get grid cells in different shapes
+* why do the other paper get grid cells in different shapes
 * are speed cells in the data, how would prove this
 * does a regular lstm/rnn trained on simliar dataset get a similar loss
 * testing out 3D, how would we generate the training data
-* what is the loss representing

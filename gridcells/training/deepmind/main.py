@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import torch
 import numpy as np
 import torch.nn as nn
+import random
 from PIL import Image
 from tqdm import tqdm
 from torch.utils.data import DataLoader
@@ -32,18 +33,26 @@ class Config:
 
     position_encoding_size: int = 256
     encoded_dataset_folder: str = "data/encoded_pickles"
+    seed: int = 42
+    # set seed to None if you want a random seed
 
 
 def train():
+
     config = Config(
         batch_size=8,
         n_epochs=401,
     )
+    if config.seed is not None:
+        torch.manual_seed(config.seed)
+        random.seed(config.seed)
+        np.random.seed(config.seed)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     date_time = dt.datetime.now().strftime("%m%d_%H%M")
     if device.type == "cuda":
-        run_name = "GPU_" + str(torch.cuda.current_device()) + "_DM_" + date_time
+        run_name = "GPU" + str(torch.cuda.current_device()) + "_DM_" + date_time
     else:
         run_name = "CPU_DM_" + date_time
     writer = SummaryWriter(f"tmp/tensorboard/{run_name}")
