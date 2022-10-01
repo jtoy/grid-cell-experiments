@@ -10,8 +10,8 @@ We also found that the better the path integration results were not that good an
 In the images below you can see some of the results:
 
 
-![path integration](https://github.com/jtoy/gridcell-experiments/blob/[main]/images/paths.png?raw=true)
-![sac scores](https://github.com/jtoy/gridcell-experiments/blob/[main]/images/sac_scores.png?raw=true)
+![path integration](https://github.com/jtoy/grid-cell-experiments/blob/[main]/images/paths.png?raw=true)
+![sac scores](https://github.com/jtoy/grid-cell-experiments/blob/[main]/images/sac_scores.png?raw=true)
 
 
 
