@@ -39,14 +39,15 @@ class Config:
 
 def train():
 
-    if config.seed is not None:
-        torch.manual_seed(config.seed)
-        random.seed(config.seed)
-        np.random.seed(config.seed)
     config = Config(
         batch_size=8,
         n_epochs=401,
     )
+    if config.seed is not None:
+        torch.manual_seed(config.seed)
+        random.seed(config.seed)
+        np.random.seed(config.seed)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     date_time = dt.datetime.now().strftime("%m%d_%H%M")
