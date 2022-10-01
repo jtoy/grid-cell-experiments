@@ -1,9 +1,11 @@
 # grid-cell-experiments
 The goal of this project is to get a deeper understanding of grid cells with code.
-I've read dozens of papers on grid cells theory and now its time to implement it into computers.
-This project reimplements DeepMind's paper: Vector-based navigation using grid-like representations in artificial agents https://www.deepmind.com/publications/vector-based-navigation-using-grid-like-representations-in-artificial-agents
-This code is written in python3 and pytorch.
 
+I've read dozens of papers on grid cells theory and now its time to implement it into computers.
+
+This project reimplements DeepMind's paper: Vector-based navigation using grid-like representations in artificial agents https://www.deepmind.com/publications/vector-based-navigation-using-grid-like-representations-in-artificial-agents
+
+This code is written in python3 and pytorch.
 
 Of note, we were able to get grid like patterns to appear similar to the original paper, but only when using a batch size of 10, if we increased it, the number of grid like cells went down dramatically.
 We also found that the better the path integration results were not that good and did not seem to be connected with grid cell patterns appearing.
