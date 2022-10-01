@@ -24,6 +24,7 @@ from gridcells.training.base.rmsprop_tf import RMSprop as RMSprop_tf
 class Config:
     batch_size: int = 10
     n_epochs: int = 301
+    samples_per_epoch: int = 10_000
     learning_rate: float = 1e-4
 
     use_dropout: bool = True
@@ -34,7 +35,10 @@ class Config:
 
 
 def train():
-    config = Config()
+    config = Config(
+        batch_size=8,
+        n_epochs=401,
+    )
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     date_time = dt.datetime.now().strftime("%m%d_%H%M")
@@ -94,6 +98,7 @@ def train():
             data_loader=train_loader,
             optimizer=optimizer,
             device=device,
+            samples_per_epoch=config.samples_per_epoch,
         )
 
         validation_loss = training_epochs.validation_epoch(
