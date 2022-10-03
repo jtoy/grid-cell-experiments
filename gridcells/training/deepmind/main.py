@@ -1,3 +1,4 @@
+import random
 import datetime as dt
 from glob import glob
 from dataclasses import dataclass
@@ -5,7 +6,6 @@ from dataclasses import dataclass
 import torch
 import numpy as np
 import torch.nn as nn
-import random
 from PIL import Image
 from tqdm import tqdm
 from torch.utils.data import DataLoader
@@ -15,10 +15,10 @@ from torch.utils.tensorboard import SummaryWriter
 from gridcells.validation import sac as SAC
 from gridcells.data import encoder as data_encoder
 from gridcells.models import main as gridcell_models
-from gridcells.data.dataset import CachedEncodedDataset
 from gridcells.validation import views as validation_views
 from gridcells.training.deepmind import epochs as training_epochs
 from gridcells.training.base.rmsprop_tf import RMSprop as RMSprop_tf
+from gridcells.data.dataset import CachedEncodedDataset, EncodedLocationDataset
 
 
 @dataclass
@@ -26,6 +26,7 @@ class Config:
     batch_size: int = 10
     n_epochs: int = 301
     samples_per_epoch: int = 10_000
+    validation_samples_per_epoch: int = 1000
     learning_rate: float = 1e-4
 
     use_dropout: bool = True
@@ -38,17 +39,19 @@ class Config:
 
 
 def train():
-
     config = Config(
-        batch_size=8,
+        batch_size=10,
         n_epochs=401,
+        position_encoding_size=400,
     )
+
     if config.seed is not None:
         torch.manual_seed(config.seed)
         random.seed(config.seed)
         np.random.seed(config.seed)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
 
     date_time = dt.datetime.now().strftime("%m%d_%H%M")
     if device.type == "cuda":
@@ -57,26 +60,32 @@ def train():
         run_name = "CPU_DM_" + date_time
     writer = SummaryWriter(f"tmp/tensorboard/{run_name}")
 
-    paths = glob(f"{config.encoded_dataset_folder}/*pickle")
+    # paths = glob(f"{config.encoded_dataset_folder}/*pickle")
 
-    t_dataset = CachedEncodedDataset(paths[:5])
-    v_dataset = CachedEncodedDataset(paths[30:32])
-    test_batch = make_test_batch(paths[44])
+    paths = glob("data/torch/*pt")
+    encoder = data_encoder.DeepMindishEncoder(
+        n_place_cells=config.position_encoding_size,
+    )
+    # dataset = EncodedLocationDataset(paths, encoder)
 
-    num_workers = 8
+    t_dataset = EncodedLocationDataset(paths[:15], encoder)
+    v_dataset = EncodedLocationDataset(paths[30:32], encoder)
+    test_batch = make_test_batch(paths[44], encoder)
+
+    # num_workers = 8
     train_loader = DataLoader(
         t_dataset,
         batch_size=config.batch_size,
         shuffle=True,
-        num_workers=num_workers,
-        pin_memory=True,
+        # num_workers=num_workers,
+        # pin_memory=True,
     )
     validation_loader = DataLoader(
         v_dataset,
         batch_size=500,
         shuffle=False,
-        num_workers=num_workers,
-        pin_memory=True,
+        # num_workers=num_workers,
+        # pin_memory=True,
     )
 
     model = gridcell_models.DeepMindModel(
@@ -114,6 +123,7 @@ def train():
             model=model,
             data_loader=validation_loader,
             device=device,
+            samples_per_epoch=config.validation_samples_per_epoch,
         )
 
         writer.add_scalar("training/loss", training_loss, epoch)
@@ -123,7 +133,7 @@ def train():
         progress_bar.set_description(epoch_summary)
 
         # Detailed validation
-        if epoch % 2 == 0:
+        if epoch % 10 == 0:
             save_experiment(model, optimizer, config, run_name)
             ratemaps = make_scored_ratemaps(model, device, test_batch)
 
@@ -265,8 +275,8 @@ def review_path_integration(model_state_path: str):
         return savepath
 
 
-def make_test_batch(path: str, n_samples: int = 5000) -> dict:
-    dataset = CachedEncodedDataset([path])
+def make_test_batch(path: str, encoder, n_samples: int = 5000) -> dict:
+    dataset = EncodedLocationDataset([path], encoder)
     loader = DataLoader(dataset, batch_size=n_samples, shuffle=True)
 
     batch = next(iter(loader))
