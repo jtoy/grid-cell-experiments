@@ -1,7 +1,8 @@
+import json
 import random
 import datetime as dt
 from glob import glob
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
 import torch
 import numpy as np
@@ -24,6 +25,7 @@ from gridcells.data.dataset import CachedEncodedDataset, EncodedLocationDataset
 @dataclass
 class Config:
     batch_size: int = 10
+    validation_batch_size: int = 500
     n_epochs: int = 301
     samples_per_epoch: int = 10_000
     validation_samples_per_epoch: int = 1000
@@ -33,16 +35,30 @@ class Config:
     weight_decay: float = 1e-5
 
     position_encoding_size: int = 256
-    encoded_dataset_folder: str = "data/encoded_pickles"
     seed: int = 42
     # set seed to None if you want a random seed
+
+    def markdown(self) -> str:
+        d = asdict(self)
+
+        # Tensorboard needs markdown without any indents :(
+        text = f"""
+### Experiment config
+
+```
+{json.dumps(d, indent=4)}
+```
+        """
+        return text
 
 
 def train():
     config = Config(
         batch_size=10,
-        n_epochs=401,
-        position_encoding_size=400,
+        validation_batch_size=500,
+        n_epochs=301,
+        samples_per_epoch=10_000,
+        position_encoding_size=256,
     )
 
     if config.seed is not None:
@@ -50,42 +66,36 @@ def train():
         random.seed(config.seed)
         np.random.seed(config.seed)
 
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     date_time = dt.datetime.now().strftime("%m%d_%H%M")
     if device.type == "cuda":
         run_name = "GPU" + str(torch.cuda.current_device()) + "_DM_" + date_time
     else:
         run_name = "CPU_DM_" + date_time
-    writer = SummaryWriter(f"tmp/tensorboard/{run_name}")
+    print("Current run:", run_name)
 
-    # paths = glob(f"{config.encoded_dataset_folder}/*pickle")
+    writer = SummaryWriter(f"tmp/tensorboard/{run_name}")
+    writer.add_text("config", config.markdown(), 0)
 
     paths = glob("data/torch/*pt")
     encoder = data_encoder.DeepMindishEncoder(
         n_place_cells=config.position_encoding_size,
     )
-    # dataset = EncodedLocationDataset(paths, encoder)
 
-    t_dataset = EncodedLocationDataset(paths[:15], encoder)
+    t_dataset = EncodedLocationDataset(paths[:30], encoder)
     v_dataset = EncodedLocationDataset(paths[30:32], encoder)
-    test_batch = make_test_batch(paths[44], encoder)
+    test_batch = make_test_batch(paths[44], encoder, n_samples=2000)
 
-    # num_workers = 8
     train_loader = DataLoader(
         t_dataset,
         batch_size=config.batch_size,
         shuffle=True,
-        # num_workers=num_workers,
-        # pin_memory=True,
     )
     validation_loader = DataLoader(
         v_dataset,
-        batch_size=500,
+        batch_size=config.validation_batch_size,
         shuffle=False,
-        # num_workers=num_workers,
-        # pin_memory=True,
     )
 
     model = gridcell_models.DeepMindModel(
