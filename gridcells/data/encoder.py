@@ -37,7 +37,12 @@ class DeepMindHeadEncoder:
         self.kappa = np.ones_like(self.means) * concentration
 
     def encode(self, head_direction: np.array) -> np.array:
-        logp = self.kappa * np.cos(head_direction - self.means[np.newaxis, :])
+        if len(head_direction.shape) == 3:
+            # It's a batch
+            logp = self.kappa * np.cos(head_direction - self.means[np.newaxis, np.newaxis, :])
+        else:
+            # It's a single trajectory (2 dim)
+            logp = self.kappa * np.cos(head_direction - self.means[np.newaxis, :])
         log_posteriors = logp - logsumexp(logp, axis=1, keepdims=True)
 
         probs = softmax(log_posteriors, axis=-1)
@@ -63,7 +68,13 @@ class DeepMindPlaceEncoder:
         self.variances = np.ones_like(self.means) * stdev ** 2
 
     def encode(self, trajs: np.array):
-        diff = trajs[:, np.newaxis, :] - self.means[np.newaxis, ...]
+        if len(trajs.shape) == 3:
+            # It's a batch
+            diff = trajs[:, :, np.newaxis, :] - self.means[np.newaxis, np.newaxis, ...]
+        else:
+            # It's a single trajectory (2 dim)
+            diff = trajs[:, np.newaxis, :] - self.means[np.newaxis, ...]
+
         normalized_diff = (diff ** 2) / self.variances
 
         logp = -0.5 * np.sum(normalized_diff, axis=-1)
@@ -75,6 +86,6 @@ class DeepMindPlaceEncoder:
         return probs.astype(np.float32)
 
     def decode(self, x: np.array) -> np.array:
-        idxs = x[:, :].argmax(-1)
+        idxs = x.argmax(-1)
         recreated = np.array([self.means[idx] for idx in idxs])
         return recreated

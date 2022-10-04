@@ -29,9 +29,7 @@ def train_epoch(
     loss_metric = LossMetric()
 
     batches_per_epoch = samples_per_epoch / data_loader.batch_size
-    # progress_bar = tqdm(data_loader, total=len(data_loader), leave=False)
     progress_bar = tqdm(enumerate(data_loader), total=batches_per_epoch, leave=False)
-    # for batch in data_loader:
     for it, batch in progress_bar:
         optimizer.zero_grad()
 
@@ -58,14 +56,16 @@ def validation_epoch(
     model: nn.Module,
     data_loader: DataLoader,
     device: torch.device,
+    samples_per_epoch: int,
 ) -> float:
     model.eval()
 
     loss_metric = LossMetric()
 
-    # for batch in data_loader:
-    progress_bar = tqdm(data_loader, total=len(data_loader), leave=False)
-    for batch in progress_bar:
+    # progress_bar = tqdm(data_loader, total=len(data_loader), leave=False)
+    batches_per_epoch = samples_per_epoch / data_loader.batch_size
+    progress_bar = tqdm(enumerate(data_loader), total=batches_per_epoch, leave=False)
+    for it, batch in progress_bar:
         loss = process(model, batch, device)
 
         loss_metric.total_loss += loss.item()
@@ -73,6 +73,8 @@ def validation_epoch(
 
         desc = f"Validation Loss: {loss.item():.2f}"
         progress_bar.set_description(desc)
+        if it >= batches_per_epoch:
+            break
 
     return loss_metric.average_loss
 

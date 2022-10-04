@@ -1,11 +1,12 @@
+import json
+import random
 import datetime as dt
 from glob import glob
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
 import torch
 import numpy as np
 import torch.nn as nn
-import random
 from PIL import Image
 from tqdm import tqdm
 from torch.utils.data import DataLoader
@@ -15,34 +16,51 @@ from torch.utils.tensorboard import SummaryWriter
 from gridcells.validation import sac as SAC
 from gridcells.data import encoder as data_encoder
 from gridcells.models import main as gridcell_models
-from gridcells.data.dataset import CachedEncodedDataset
 from gridcells.validation import views as validation_views
 from gridcells.training.deepmind import epochs as training_epochs
 from gridcells.training.base.rmsprop_tf import RMSprop as RMSprop_tf
+from gridcells.data.dataset import CachedEncodedDataset, EncodedLocationDataset
 
 
 @dataclass
 class Config:
     batch_size: int = 10
+    validation_batch_size: int = 500
     n_epochs: int = 301
     samples_per_epoch: int = 10_000
+    validation_samples_per_epoch: int = 1000
     learning_rate: float = 1e-4
 
     use_dropout: bool = True
     weight_decay: float = 1e-5
 
     position_encoding_size: int = 256
-    encoded_dataset_folder: str = "data/encoded_pickles"
     seed: int = 42
     # set seed to None if you want a random seed
 
+    def markdown(self) -> str:
+        d = asdict(self)
+
+        # Tensorboard needs markdown without any indents :(
+        text = f"""
+### Experiment config
+
+```
+{json.dumps(d, indent=4)}
+```
+        """
+        return text
+
 
 def train():
-
     config = Config(
-        batch_size=8,
-        n_epochs=401,
+        batch_size=10,
+        validation_batch_size=500,
+        n_epochs=301,
+        samples_per_epoch=10_000,
+        position_encoding_size=256,
     )
+
     if config.seed is not None:
         torch.manual_seed(config.seed)
         random.seed(config.seed)
@@ -55,28 +73,29 @@ def train():
         run_name = "GPU" + str(torch.cuda.current_device()) + "_DM_" + date_time
     else:
         run_name = "CPU_DM_" + date_time
+    print("Current run:", run_name)
+
     writer = SummaryWriter(f"tmp/tensorboard/{run_name}")
+    writer.add_text("config", config.markdown(), 0)
 
-    paths = glob(f"{config.encoded_dataset_folder}/*pickle")
+    paths = glob("data/torch/*pt")
+    encoder = data_encoder.DeepMindishEncoder(
+        n_place_cells=config.position_encoding_size,
+    )
 
-    t_dataset = CachedEncodedDataset(paths[:5])
-    v_dataset = CachedEncodedDataset(paths[30:32])
-    test_batch = make_test_batch(paths[44])
+    t_dataset = EncodedLocationDataset(paths[:30], encoder)
+    v_dataset = EncodedLocationDataset(paths[30:32], encoder)
+    test_batch = make_test_batch(paths[44], encoder, n_samples=2000)
 
-    num_workers = 8
     train_loader = DataLoader(
         t_dataset,
         batch_size=config.batch_size,
         shuffle=True,
-        num_workers=num_workers,
-        pin_memory=True,
     )
     validation_loader = DataLoader(
         v_dataset,
-        batch_size=500,
+        batch_size=config.validation_batch_size,
         shuffle=False,
-        num_workers=num_workers,
-        pin_memory=True,
     )
 
     model = gridcell_models.DeepMindModel(
@@ -114,6 +133,7 @@ def train():
             model=model,
             data_loader=validation_loader,
             device=device,
+            samples_per_epoch=config.validation_samples_per_epoch,
         )
 
         writer.add_scalar("training/loss", training_loss, epoch)
@@ -123,7 +143,7 @@ def train():
         progress_bar.set_description(epoch_summary)
 
         # Detailed validation
-        if epoch % 2 == 0:
+        if epoch % 10 == 0:
             save_experiment(model, optimizer, config, run_name)
             ratemaps = make_scored_ratemaps(model, device, test_batch)
 
@@ -265,8 +285,8 @@ def review_path_integration(model_state_path: str):
         return savepath
 
 
-def make_test_batch(path: str, n_samples: int = 5000) -> dict:
-    dataset = CachedEncodedDataset([path])
+def make_test_batch(path: str, encoder, n_samples: int = 5000) -> dict:
+    dataset = EncodedLocationDataset([path], encoder)
     loader = DataLoader(dataset, batch_size=n_samples, shuffle=True)
 
     batch = next(iter(loader))
