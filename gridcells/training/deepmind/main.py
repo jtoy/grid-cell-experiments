@@ -32,6 +32,7 @@ class Config:
     use_dropout: bool = True
     weight_decay: float = 1e-5
 
+    bottleneck_size: int = 256
     position_encoding_size: int = 256
     seed: int = 42
     # set seed to None if you want a random seed
@@ -52,7 +53,7 @@ class Config:
 
 def train():
     config = Config(
-        batch_size=10,
+        batch_size=1000,
         validation_batch_size=500,
         n_epochs=301,
         samples_per_epoch=10_000,
@@ -100,6 +101,7 @@ def train():
     model = gridcell_models.DeepMindModel(
         weight_decay=config.weight_decay,
         use_dropout=config.use_dropout,
+        bottleneck_size=config.bottleneck_size,
         position_encoding_size=config.position_encoding_size,
     )
     model = model.to(device)

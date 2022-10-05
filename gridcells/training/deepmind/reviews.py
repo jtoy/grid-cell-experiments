@@ -3,6 +3,7 @@ from glob import glob
 import torch
 import numpy as np
 import torch.nn as nn
+from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
 
 from gridcells.validation import sac as SAC
@@ -136,3 +137,70 @@ def review_path_integration(experiment_state_path: str):
         savepath = f"tmp/dp-review-{it:02}.png"
         fig.savefig(savepath)
     return savepath
+
+
+def review_head_angle_activations(experiment_state_path: str):
+    device = torch.device("cpu")
+    experiment_state = torch.load(experiment_state_path)
+    config = experiment_state["config"]
+
+    model = gridcell_models.DeepMindModel(
+        weight_decay=config.weight_decay,
+        use_dropout=config.use_dropout,
+        bottleneck_size=config.bottleneck_size,
+        position_encoding_size=config.position_encoding_size,
+    )
+    model.load_state_dict(experiment_state["model"])
+    model.cpu().eval()
+
+    encoder = data_encoder.DeepMindishEncoder(
+        n_place_cells=config.position_encoding_size,
+    )
+
+    # Make a dataset from a single path that was
+    # not used during trainig and validation
+    paths = glob("data/torch/*pt")
+    path = paths[-1]
+    dataset = EncodedLocationDataset([path], encoder)
+    loader = DataLoader(dataset, batch_size=1000, shuffle=True)
+
+    # Unpack data for model input
+    batch = next(iter(loader))
+    ego_vel = batch["ego_vel"].to(device)
+    encoded_pos = batch["encoded_initial_pos"].to(device)
+    encoded_hd = batch["encoded_initial_hd"].to(device)
+    concat_init = torch.cat([encoded_hd, encoded_pos], axis=2).squeeze()
+    target_hd = batch["target_hd"].numpy()
+
+    predicted_positions, predicted_hd, bottlenecks = model(concat_init, ego_vel)
+
+    bottleneck_size = config.bottleneck_size
+    activations = bottlenecks.reshape(-1, bottleneck_size).detach().cpu().numpy()
+    hd = target_hd.reshape(-1)
+
+    scores = []
+    for it in range(-100, 100):
+        jt = it + 1
+        ids = (hd >= it * np.pi / 100) & (hd < jt * np.pi / 100)
+        angled_activations = activations[ids]
+        res = angled_activations.mean(0)
+        scores.append(res)
+    scores = np.array(scores)
+
+    # Find the least noisy curves
+    diffs = np.diff(scores, axis=0)
+    noise_score = np.std(diffs, axis=0)
+
+    n_samples = 10
+    x = np.linspace(-np.pi, np.pi, 200)
+    fig, axes = plt.subplots(n_samples, 1, figsize=(8, 12))
+    for it in range(n_samples):
+        ax = axes[it]
+        idx = noise_score.argsort()[it]
+        ax.plot(x, scores[:, idx], label=f"Cell: {idx}")
+        ax.legend()
+
+    ax.set_xlabel("Head Angle [rad]")
+    fig.suptitle("Cell Activation x Head Direction")
+
+    return fig
