@@ -1,8 +1,10 @@
 from glob import glob
 
+import tqdm
 import torch
 import numpy as np
 import torch.nn as nn
+from PIL import Image
 from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
 
@@ -162,7 +164,7 @@ def review_head_angle_activations(experiment_state_path: str):
     paths = glob("data/torch/*pt")
     path = paths[-1]
     dataset = EncodedLocationDataset([path], encoder)
-    loader = DataLoader(dataset, batch_size=1000, shuffle=True)
+    loader = DataLoader(dataset, batch_size=10000, shuffle=True)
 
     # Unpack data for model input
     batch = next(iter(loader))
@@ -171,6 +173,7 @@ def review_head_angle_activations(experiment_state_path: str):
     encoded_hd = batch["encoded_initial_hd"].to(device)
     concat_init = torch.cat([encoded_hd, encoded_pos], axis=2).squeeze()
     target_hd = batch["target_hd"].numpy()
+    # target_pos = batch["target_pos"].numpy()
 
     predicted_positions, predicted_hd, bottlenecks = model(concat_init, ego_vel)
 
@@ -183,6 +186,8 @@ def review_head_angle_activations(experiment_state_path: str):
         jt = it + 1
         ids = (hd >= it * np.pi / 100) & (hd < jt * np.pi / 100)
         angled_activations = activations[ids]
+
+        # "cells" are in the dim=1, so this is per-cell
         res = angled_activations.mean(0)
         scores.append(res)
     scores = np.array(scores)
@@ -204,3 +209,55 @@ def review_head_angle_activations(experiment_state_path: str):
     fig.suptitle("Cell Activation x Head Direction")
 
     return fig
+
+
+def head_rotation_animation(
+    activations: np.array,
+    target_pos: np.array,
+    hd: np.array,
+):
+    scores = []
+    for it in range(-100, 100):
+        jt = it + 1
+        ids = (hd >= it * np.pi / 100) & (hd < jt * np.pi / 100)
+        angled_activations = activations[ids]
+        res = angled_activations.mean(0)
+        scores.append(res)
+    scores = np.array(scores)
+
+    data_xy = target_pos.reshape(-1, target_pos.shape[-1])
+    x = data_xy[:, 0]
+    y = data_xy[:, 1]
+
+    # Find the least noisy curves
+    diffs = np.diff(scores, axis=0)
+    noise_score = np.std(diffs, axis=0)
+    cell_ids = noise_score.argsort()[:64]
+
+    ratemap_grids = []
+    for it in range(-128, 128):
+        jt = it + 1
+        ids = (hd >= it * np.pi / 128) & (hd < jt * np.pi / 128)
+        x_part = x[ids]
+        y_part = y[ids]
+        act_part = activations[ids]
+        ratemaps = [SAC.calculate_ratemap(x_part, y_part, act_part[:, cid]) for cid in cell_ids]
+        grid = np.vstack([np.hstack(ratemaps[8 * it : 8 * (it + 1)]) for it in range(8)])
+        grid[np.isnan(grid)] = 0
+        ratemap_grids.append(grid)
+
+    ratemap_grids = np.stack(ratemap_grids)
+    ratemap_grids -= ratemap_grids.min()
+    ratemap_grids /= ratemap_grids.max()
+    ratemap_grids *= 255
+
+    for it in tqdm(range(256)):
+        savepath = f"tmp/to_gif/frame_{it:04}.png"
+        img = Image.fromarray(ratemap_grids[it])
+
+        img.convert("RGB").save(savepath)
+
+    # https://gif.ski/
+    # gifski -o tmp/tmp.gif tmp/to_gif/frame_*.png
+
+    return ratemap_grids

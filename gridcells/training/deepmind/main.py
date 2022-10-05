@@ -56,7 +56,7 @@ def train():
         batch_size=1000,
         validation_batch_size=500,
         n_epochs=301,
-        samples_per_epoch=10_000,
+        samples_per_epoch=50_000,
         position_encoding_size=256,
     )
 
@@ -66,6 +66,7 @@ def train():
         np.random.seed(config.seed)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cpu")
 
     date_time = dt.datetime.now().strftime("%m%d_%H%M")
     if device.type == "cuda":
