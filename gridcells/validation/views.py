@@ -91,10 +91,6 @@ def draw_rated_activations_ratemaps(
         nrows=16,
         ncols=16,
         figsize=[13, 13],
-        # gridspec_kw={
-        #     'wspace': 1.,
-        #     # 'hspace': 0.0
-        # },
     )
     for it in range(16):
         for jt in range(16):
