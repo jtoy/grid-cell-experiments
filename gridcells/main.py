@@ -14,6 +14,7 @@ from gridcells.models import main as gridcell_models
 from gridcells.training.base import main as base_training
 from gridcells.validation import views as validation_views
 from gridcells.training.deepmind import main as deepmind_training
+from gridcells.training.ganguli import main as ganguli_training
 from gridcells.data.dataset import SelfLocationDataset, EncodedLocationDataset
 
 
@@ -114,5 +115,7 @@ if __name__ == "__main__":
         cache_encoded_dataset()
     elif args.process == "baseline_train":
         base_training.train(n_epochs=1001)
+    elif args.process == "ganguli_train":
+        ganguli_training.train(n_epochs=1001)
     else:
         deepmind_training.train()
