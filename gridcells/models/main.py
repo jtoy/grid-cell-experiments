@@ -109,10 +109,10 @@ class DeepMindModel(nn.Module):
 class GanguliRNN(torch.nn.Module):
     def __init__(self, options, place_cells):
         super(RNN, self).__init__()
-        self.Ng = options.Ng
-        self.Np = options.Np
-        self.sequence_length = options.sequence_length
-        self.weight_decay = options.weight_decay
+        self.Ng = 4096
+        self.Np = 512
+        self.sequence_length = 20
+        self.weight_decay = 1e-4
         self.place_cells = place_cells
 
         # Input weights
