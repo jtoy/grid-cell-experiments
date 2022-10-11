@@ -1,18 +1,12 @@
-import datetime as dt
-from glob import glob
+import os
 
 import torch
-import torch.nn as nn
-from tqdm import tqdm
-from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
+import numpy as np
 
 from gridcells.models import main as gridcell_models
-from gridcells.data.dataset import SelfLocationDataset
-from gridcells.validation import views as validation_views
-from gridcells.training.base import epochs as training_epochs
-from gridcells.training.ganguli.trajectory_generator import TrajectoryGenerator
+# from gridcells.data.dataset import SelfLocationDataset
 from gridcells.training.ganguli.place_cells import PlaceCells
+from gridcells.training.ganguli.trajectory_generator import TrajectoryGenerator
 
 
 class Trainer(object):
@@ -29,7 +23,7 @@ class Trainer(object):
         # Set up checkpoints
         self.ckpt_dir = os.path.join(options.save_dir, options.run_ID)
         if restore and os.path.isdir(self.ckpt_dir):
-            ckpt = os.path.join(self.ckpt_dir, 'most_recent_model.pth')
+            ckpt = os.path.join(self.ckpt_dir, "most_recent_model.pth")
             self.model.load_state_dict(torch.load(ckpt))
             print("Restored trained model from {}".format(ckpt))
         else:
@@ -38,36 +32,34 @@ class Trainer(object):
             print("Initializing new model from scratch.")
             print("Saving to: {}".format(self.ckpt_dir))
 
-
     def train_step(self, inputs, pc_outputs, pos):
-        ''' 
+        """
         Train on one batch of trajectories.
         Args:
             inputs: Batch of 2d velocity inputs with shape [batch_size, sequence_length, 2].
-            pc_outputs: Ground truth place cell activations with shape 
+            pc_outputs: Ground truth place cell activations with shape
                 [batch_size, sequence_length, Np].
             pos: Ground truth 2d position with shape [batch_size, sequence_length, 2].
         Returns:
             loss: Avg. loss for this training batch.
             err: Avg. decoded position error in cm.
-        '''
+        """
         self.model.zero_grad()
 
         loss, err = self.model.compute_loss(inputs, pc_outputs, pos)
-        
+
         loss.backward()
         self.optimizer.step()
-        
+
         return loss.item(), err.item()
 
-
     def train(self, n_steps=10, save=True):
-        ''' 
+        """
         Train model on simulated trajectories.
         Args:
             n_steps: Number of training steps
             save: If true, save a checkpoint after each epoch.
-        '''
+        """
 
         # Construct generator
         gen = self.trajectory_generator.get_generator()
@@ -79,25 +71,24 @@ class Trainer(object):
             self.loss.append(loss)
             self.err.append(err)
 
-            #Log error rate to progress bar
+            # Log error rate to progress bar
             # tbar.set_description('Error = ' + str(np.int(100*err)) + 'cm')
 
-            if save and t%10000==0:
-                print('Step {}/{}. Loss: {}. Err: {}cm'.format(
-                    t,n_steps,np.round(loss,2),np.round(100*err,2)))
+            if save and t % 10000 == 0:
+                print("Step {}/{}. Loss: {}. Err: {}cm".format(t, n_steps, np.round(loss, 2), np.round(100 * err, 2)))
                 # Save checkpoint
-                ckpt_path = os.path.join(self.ckpt_dir, 'iter_{}.pth'.format(t))
+                ckpt_path = os.path.join(self.ckpt_dir, "iter_{}.pth".format(t))
                 torch.save(self.model.state_dict(), ckpt_path)
-                torch.save(self.model.state_dict(), os.path.join(self.ckpt_dir,
-                                            'most_recent_model.pth'))
+                torch.save(self.model.state_dict(), os.path.join(self.ckpt_dir, "most_recent_model.pth"))
 
                 # Save a picture of rate maps
-                save_ratemaps(self.model, self.trajectory_generator,
-                 self.options, step=t)
+                # save_ratemaps(self.model, self.trajectory_generator, self.options, step=t)
+
 
 def train(n_epochs: int = 51):
-    options = {'Np':512}
+    options = {"Np": 512}
     place_cells = PlaceCells(options)
     trajectory_generator = TrajectoryGenerator(options, place_cells)
+    model = gridcell_models.GanguliRNN()
     trainer = Trainer(options, model, trajectory_generator)
     trainer.train(n_epochs=n_epochs, n_steps=50)
