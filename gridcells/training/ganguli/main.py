@@ -14,15 +14,15 @@ class Trainer(object):
         self.options = options
         self.model = model
         self.trajectory_generator = trajectory_generator
-        lr = self.options.learning_rate
+        lr = 1e-4
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
 
         self.loss = []
         self.err = []
 
         # Set up checkpoints
-        self.ckpt_dir = os.path.join(options.save_dir, options.run_ID)
-        if restore and os.path.isdir(self.ckpt_dir):
+        self.ckpt_dir = os.path.join("tmp/", "ganguli")
+        if 1 == 2 and restore and os.path.isdir(self.ckpt_dir):
             ckpt = os.path.join(self.ckpt_dir, "most_recent_model.pth")
             self.model.load_state_dict(torch.load(ckpt))
             print("Restored trained model from {}".format(ckpt))
@@ -89,6 +89,6 @@ def train(n_epochs: int = 51):
     options = {"Np": 512}
     place_cells = PlaceCells(options)
     trajectory_generator = TrajectoryGenerator(options, place_cells)
-    model = gridcell_models.GanguliRNN()
+    model = gridcell_models.GanguliRNN(options, place_cells)
     trainer = Trainer(options, model, trajectory_generator)
-    trainer.train(n_epochs=n_epochs, n_steps=50)
+    trainer.train(n_epochs=100, n_steps=50)
