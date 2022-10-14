@@ -8,7 +8,7 @@ This project reimplements DeepMind's paper: Vector-based navigation using grid-l
 This code is written in python3 and pytorch.
 
 Of note, we were able to get grid like patterns to appear similar to the original paper, but only when using a batch size of 10, if we increased it, the number of grid like cells went down dramatically.
-We also found that the better the path integration results were not that good and did not seem to be connected with grid cell patterns appearing.
+We also found that the better the path integration results were not that good and did not seem to be connected with grid cell patterns appearing. Originally we were concerned with this, but after reading "No Free Lunch from Deep Learning in Neuroscience: A Case Study through Models of the Entorhinal-Hippocampal Circuit" https://openreview.net/forum?id=mxi1xKzNFrb and learned they trained 415 ANNs optimizng for path integration and only 8% had grid like responses, we think we came up with the same expected results.   
 In the images below you can see some of the results:
 
 
