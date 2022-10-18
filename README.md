@@ -1,7 +1,7 @@
 # grid-cell-experiments
 The goal of this project is to get a deeper understanding of grid cells with code.
 
-I've read dozens of papers on grid cells theory and now its time to implement it into computers.
+Dozens of papers on grid cells theory were reviewed and now its time to implement it into computers.
 
 This project reimplements DeepMind's paper: Vector-based navigation using grid-like representations in artificial agents https://www.deepmind.com/publications/vector-based-navigation-using-grid-like-representations-in-artificial-agents
 
